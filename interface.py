@@ -56,7 +56,7 @@ class App:
         self.combobox1_value = StringVar()
         self.combobox1 = ttk.Combobox(self.frame1,textvariable=self.combobox1_value,width=40,height=30,font=self.ft)
         self.combobox1.bind("<<ComboboxSelected>>", self.combo1_selection)
-        self.combobox1.bind("<KeyRelease>", self.search_func)
+        self.combobox1.bind("<Return>", self.search_func)
                 
         self.labelframe1.grid(row = 1,rowspan = 30,column = 0,columnspan = 2,padx = 10,pady = 2,sticky = (N, S, W))
         label8.grid(row = 0,column = 0,padx = 10,pady = 2,sticky = W)
@@ -193,7 +193,8 @@ class App:
         
     def lbox_init(self):
         #从mongodb取lbox的items列表
-        self.mongo_object.db_init()      
+        self.mongo_object.db_init()
+        self.lbox.delete(0, 'end')
         for item in self.mongo_object.case:
             self.lbox.insert('end', item["_id"])
     
@@ -251,6 +252,7 @@ class App:
                     shutil.copyfile("dictionary\\" + self.combobox1.get() + ".ini", 
                                     "dictionary\\" + self.ent9_value.get() + ".ini")
                 messagebox.showinfo(title = '提示', message = '券商配置保存成功！')
+                self.mongo_object = dbinit.Mongo(self.newly_scheme)
                 #自动初始化listbox列表
                 self.lbox_init()
                 self.parent.attributes('-disabled', 0)
@@ -272,6 +274,9 @@ class App:
             self.ent2_value.set(self.server_port)
             self.ent3_value.set(self.qs_id)
             config.deletebackup(delvalue, curvalue)
+            self.mongo_object = dbinit.Mongo(curvalue)
+            #自动初始化listbox列表
+            self.lbox_init()            
             
     def copy_value(self, event):
         templist = []
@@ -328,10 +333,14 @@ class App:
         
     def search_func(self, event):   
         for item in self.combobox1['values']:
-            if self.combobox1.get() in item:
+            if item.startswith(self.combobox1.get()):
+                #取得第一个匹配self.combobox1.get()输入值的values索引
                 index = self.combobox1['values'].index(item)
-                #显示combobox1下拉列表
-                print(self.combobox1.focus_displayof())
+                print(index)
+                break
+        #切换到index的位置
+        self.combobox1.current(index)
+        self.combobox1.icursor('end')
         
     def init_function(self):
         ll = []
@@ -415,7 +424,7 @@ class App:
                 entry_list.append(widget.get())
             else:
                 label_list.append(widget['text'])
-        func_dict['_id'] = '请填写不重复值，例如：11100客户校验_场景一'
+        func_dict['_id'] = self.combobox1.get() + '_场景XX'
         func_dict['array'] = [{k:v} for k,v in list(zip(list(reversed(label_list)), list(reversed(entry_list))))]
         self.text.insert(1.0, json.dumps(func_dict, ensure_ascii=False, indent=4))
         
@@ -427,7 +436,7 @@ class App:
             idxs = self.lbox.get(idx)
             self.lbox.delete(idx, idx)
             pos = pos + 1        
-            self.mongo_object.db_del(self.combobox1.get(), idxs)
+            self.mongo_object.db_del(idxs[:10], idxs)
     
     def func_backup(self, event):
         #取焦点控件entry的输入值
@@ -456,7 +465,16 @@ class App:
         except OSError as e:
             print(e)
             return
-        self.func_object.autotest()
+        
+        for document in self.mongo_object.case:
+            request_data = ''.join("8=DZH1.0\x0121004=%s\x0121010=%s"%(document['_id'][:5], self.func_object.guid))
+            for field in document['array']:
+                item = list(field.items())[0]
+                request_data += '\x01' + item[0][:4] + '=' + item[1]
+            loop = asyncio.get_event_loop()
+            self.func_object.recv_serverdata = loop.run_until_complete(self.func_object.pack_send_data(request_data))
+            str_data = self.func_object.unpack_data()
+            rec_list = self.func_object.parse_string(str_data)        
         
     def functest(self, request_data):
         print(request_data)
@@ -498,7 +516,7 @@ class App:
                     self.tree.insert('',i,text=str(i+1),values=[j[1] for j in rec_list[i].items()], tags=('oddrow',))
                 else:
                     self.tree.insert('',i,text=str(i+1),values=[j[1] for j in rec_list[i].items()], tags=('evenrow',))
-            self.tree.tag_configure('evenrow', background='#f0f0ff')        
+            self.tree.tag_configure('evenrow', background='#f0f0ff')
         
     def connect(self):
         self.current_scheme = self.combobox2.get()

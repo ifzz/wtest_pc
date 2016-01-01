@@ -269,10 +269,10 @@ class Func():
     def write_err_log(self, err_record):
         print("收到错误数据")
         try:
-            func = err_record['21004'] + self.request_gn_interpret_dict[err_record['21004']]
+            func = err_record['21004'] + ' ' + self.request_gn_interpret_dict[err_record['21004']]
         except KeyError:
             func = err_record['21004']
-        db_commontrade = self.client[self.qs_id+'_应答错误']
+        db_commontrade = self.client[self.qs_id+'应答_错误']
         db_commontrade[func].insert_one(err_record)
      
        
@@ -281,10 +281,10 @@ class Func():
         if rec_list==[]:
             return
         try:
-            func = yd_gn + self.answer_gn_interpret_dict[yd_gn]
+            func = yd_gn + ' ' + self.answer_gn_interpret_dict[yd_gn]
         except KeyError:
             func = yd_gn 
-        db_commontrade = self.client[self.qs_id+'_应答']
+        db_commontrade = self.client[self.qs_id+'应答']
         db_commontrade[func].insert_one(rec_list)
         
     
@@ -343,7 +343,7 @@ class Func():
                         print('Parse string KeyError:', e)
                 rec_list.append(rec_dict)
             self.ckeck_result()
-            self.write_log(yd_gn, collections.OrderedDict({"列表":rec_list}))
+            self.write_log(yd_gn, collections.OrderedDict({"array":rec_list}))
             return rec_list
      
      
