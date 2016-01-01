@@ -61,11 +61,13 @@ def deletebackup(current_scheme, prev_scheme):
         return False
     
     
-def readfunc(config_file, section, option):
+def readfunc(config_file, section, option=None):
     commset = ['1016','1030','1207','1203','1032','1005','1205']
     config = configparser.ConfigParser()
     try:
         config.read('dictionary\\' + config_file + '.ini')
+        if option == None:
+            return config.items(section)
         if option in commset:
             return config.get('commset', option)
         else:

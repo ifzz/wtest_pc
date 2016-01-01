@@ -349,23 +349,25 @@ class Func():
      
     def write_json(self):
         request_fdict=collections.OrderedDict()    #请求全部功能+字段描述字典，具体内容查看wtparam.json
+        if not os.path.exists("dictionary"):
+            os.mkdir("dictionary")
         js=open("dictionary\\"+self.qs_id+"_请求字典"+".json", mode='w')
         for i in self.request_gn_list:
-            function_chinese=str(i)+self.request_gn_interpret_dict[i]
-            field_chinese = map(lambda zd:str(zd)+self.zd_interpret_dic[zd], self.request_gn_zd_dict[i])
+            function_chinese=str(i)+' '+self.request_gn_interpret_dict[i]
+            field_chinese = map(lambda zd:str(zd)+' '+self.zd_interpret_dic[zd], self.request_gn_zd_dict[i])
             request_fdict[function_chinese]=[collections.OrderedDict().fromkeys(field_chinese, '')]
             
         for k1 in request_fdict:
             for num in range(0, len(request_fdict[k1])):
                 field_dict = request_fdict[k1][num].keys()
-                if "1202版本号" not in field_dict:
-                    request_fdict[k1][num]["1202版本号"] = ""
-                if "6129客户端细分" not in field_dict:
-                    request_fdict[k1][num]["6129客户端细分"] = ""
-                if "6130UDID" not in field_dict:
-                    request_fdict[k1][num]["6130UDID"] = ""
-                if "6131IMEI" not in field_dict:
-                    request_fdict[k1][num]["6131IMEI"] = ""
+                if "1202 版本号" not in field_dict:
+                    request_fdict[k1][num]["1202 版本号"] = ""
+                if "6129 客户端细分" not in field_dict:
+                    request_fdict[k1][num]["6129 客户端细分"] = ""
+                if "6130 UDID" not in field_dict:
+                    request_fdict[k1][num]["6130 UDID"] = ""
+                if "6131 IMEI" not in field_dict:
+                    request_fdict[k1][num]["6131 IMEI"] = ""
             
         js.write(json.dumps(request_fdict, ensure_ascii=False, indent=4))
         js.close()           
@@ -375,8 +377,8 @@ class Func():
         js=open("dictionary\\"+self.qs_id+"_应答字典"+".json", mode='w')
         for i in self.answer_gn_list:
             try:
-                function_chinese=str(i)+self.answer_gn_interpret_dict[i]
-                field_chinese = map(lambda zd:str(zd)+self.zd_interpret_dic[zd], self.answer_gn_zd_dict[i])
+                function_chinese=str(i)+' '+self.answer_gn_interpret_dict[i]
+                field_chinese = map(lambda zd:str(zd)+' '+self.zd_interpret_dic[zd], self.answer_gn_zd_dict[i])
                 answer_fdict[function_chinese]=[collections.OrderedDict().fromkeys(field_chinese, '')]
             except KeyError as e:
                 print("{0}：{1} 缺少中文描述".format(function_chinese, e))      

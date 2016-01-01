@@ -3,9 +3,12 @@
 
 import os
 import re
+import json
+import dbinit
 import config
 import asyncio
 import autotest
+import collections
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
@@ -19,6 +22,7 @@ class App:
         self.func_object = autotest.Func(self.server_ip, self.server_port, self.qs_id)
         self.func_object.readdict()
         self.func_object.write_json()
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
         
         self.parent = parent
         self.value_of_combo2 = '11100客户校验'
@@ -131,24 +135,19 @@ class App:
         label13.grid(row = 7,column = 2,padx = 10,pady = 2,sticky = (N, W))
         label14.grid(row = 8,column = 2,padx = 10,pady = 2,sticky = (N, W))
     
-        self.lbox = Listbox(self.frame2, height=5)
+        self.lbox = Listbox(self.frame2, height=5, selectmode="extended")
         self.lbox.grid(row=0, rowspan=8, column=6, columnspan=2, padx = 0,pady = 2, sticky=(N, W, E, S))
         scrollbar1 = ttk.Scrollbar(self.frame2, orient=VERTICAL, command=self.lbox.yview)
         scrollbar1.grid(row=0, rowspan=8, column=8, padx = 0,pady = 2, sticky=(N, S))
         self.lbox['yscrollcommand'] = scrollbar1.set
         self.lbox.grid_columnconfigure(6, weight=1)
         self.frame2.grid_columnconfigure(6, weight=1)
-        #for i in range(1,101):
-        #    self.lbox.insert('end', 'Line %d of 100' % i)
+        self.lbox.bind("<Double-1>", self.modify_scene)
+         #自动初始化listbox列表
+        self.lbox_init()
     
-        # Colorize alternating lines of the listbox
-        #for i in range(0,100,2):
-        #    self.lbox.itemconfigure(i, background='#f0f0ff') 
-    
-        self.lbox.bind("<Double-1>", self.showscene)
-    
-        self.button7 = ttk.Button(self.frame2,text = '保存场景',state = 'normal',width = 12, command = self.connect)
-        self.button8 = ttk.Button(self.frame2,text = '删除场景',state = 'normal',width = 12, command = self.close)  
+        self.button7 = ttk.Button(self.frame2,text = '新增场景',state = 'normal',width = 12, command = self.add_scene)
+        self.button8 = ttk.Button(self.frame2,text = '删除场景',state = 'normal',width = 12, command = self.del_scene)  
         self.button7.grid(row = 8,column = 6,padx = 0,pady = 2,sticky = E)
         self.button8.grid(row = 8,column = 7,padx = 0,pady = 2,sticky = (E, W))        
     
@@ -190,7 +189,17 @@ class App:
         self.parent.grid_columnconfigure(2, weight=1)
         
         #功能选项界面初始化
-        self.init_function()                 
+        self.init_function()
+        
+    def lbox_init(self):
+        #从mongodb取lbox的items列表
+        self.mongo_object.db_init()      
+        for item in self.mongo_object.case:
+            self.lbox.insert('end', item["_id"])
+    
+        # Colorize alternating lines of the listbox
+        for i in range(0, len(self.mongo_object.case), 2):
+            self.lbox.itemconfigure(i, background='#f0f0ff')
         
     def addconfig(self):
         self.toplevel = Toplevel(self.parent, borderwidth=10)
@@ -242,6 +251,8 @@ class App:
                     shutil.copyfile("dictionary\\" + self.combobox1.get() + ".ini", 
                                     "dictionary\\" + self.ent9_value.get() + ".ini")
                 messagebox.showinfo(title = '提示', message = '券商配置保存成功！')
+                #自动初始化listbox列表
+                self.lbox_init()
                 self.parent.attributes('-disabled', 0)
                 self.toplevel.destroy()
     
@@ -297,12 +308,23 @@ class App:
         self.current_scheme, self.server_ip, self.server_port, self.qs_id = config.readbackup(self.combobox2.get())
         self.func_object = autotest.Func(self.server_ip, self.server_port, self.qs_id)
         self.func_object.readdict()
-        self.func_object.write_json()        
+        self.func_object.write_json()      
 
         self.ent1_value.set(self.server_ip)
         self.ent2_value.set(self.server_port)
         self.ent3_value.set(self.qs_id)
         self.init_function()
+        
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
+        self.mongo_object.db_init()
+        
+        self.lbox.delete(0, 'end')
+        for item in self.mongo_object.case:
+            self.lbox.insert('end', item["_id"])
+    
+        # Colorize alternating lines of the listbox
+        for i in range(0, len(self.mongo_object.case), 2):
+            self.lbox.itemconfigure(i, background='#f0f0ff')         
         
     def search_func(self, event):   
         for item in self.combobox1['values']:
@@ -340,19 +362,17 @@ class App:
                 self.request_data += '\x01' + i[:4] + '=' + tempvalue
             self.ent7_value.set(self.request_data)                
         
-    def showscene(self, event):
-        idxs = self.lbox.selection_get()
-        
+    def showscene(self):   
         self.toplevel = Toplevel(self.parent)
         self.toplevel.geometry('600x600+350+50')
         self.toplevel.title(string='测试场景')
         self.toplevel.iconbitmap('console.ico')
-        self.text = Text(self.toplevel)
+        self.text = Text(self.toplevel, font = self.ft)
         self.scrollbar4 = ttk.Scrollbar(self.text)
         self.text.config(yscrollcommand = self.scrollbar4.set)
         self.scrollbar4.config(command = self.text.yview)
         self.button9 = ttk.Button(self.toplevel, text = '退出', state = 'normal', width = 15, command = self.cancel)
-        self.button10 = ttk.Button(self.toplevel, text = '保存', state = 'normal', width = 15, command = self.modifysave)
+        self.button10 = ttk.Button(self.toplevel, text = '保存', state = 'normal', width = 15, command = self.save_scene)
 
         self.text.pack(expand = YES, fill = BOTH)
         self.scrollbar4.pack(side = RIGHT, fill = Y)
@@ -369,8 +389,45 @@ class App:
         #显示父窗口
         self.parent.deiconify()
         
-    def modifysave(self):
-        pass
+    def modify_scene(self, event):
+        self.showscene()
+        idxs = self.lbox.selection_get()
+        #查库取_id等于idxs的document
+        func_dict = self.mongo_object.db_find(self.combobox1.get(), idxs)
+        self.text.insert(1.0, json.dumps(collections.OrderedDict(sorted(func_dict.items())), ensure_ascii=False, indent=4))
+        
+    def save_scene(self):
+        #取text中的_id
+        idxs = self.text.get(2.0, 3.0).split('": "')[1].split('",')[0]
+        self.mongo_object.db_add(self.combobox1.get(), idxs, json.loads(self.text.get(1.0, 'end')))
+        if idxs not in self.lbox.get(0, 'end'):   
+            self.lbox.insert('end', idxs)
+            self.lbox.update_idletasks()
+        self.cancel()
+        
+    def add_scene(self):
+        self.showscene()
+        entry_list = []
+        label_list = []
+        func_dict = collections.OrderedDict()
+        for widget in self.labelframe1.grid_slaves():
+            if str(type(widget)) == "<class 'tkinter.ttk.Entry'>":
+                entry_list.append(widget.get())
+            else:
+                label_list.append(widget['text'])
+        func_dict['_id'] = '请填写不重复值，例如：11100客户校验_场景一'
+        func_dict['array'] = [{k:v} for k,v in list(zip(list(reversed(label_list)), list(reversed(entry_list))))]
+        self.text.insert(1.0, json.dumps(func_dict, ensure_ascii=False, indent=4))
+        
+    def del_scene(self): 
+        items = self.lbox.curselection()
+        pos = 0
+        for i in items :
+            idx = int(i) - pos
+            idxs = self.lbox.get(idx)
+            self.lbox.delete(idx, idx)
+            pos = pos + 1        
+            self.mongo_object.db_del(self.combobox1.get(), idxs)
     
     def func_backup(self, event):
         #取焦点控件entry的输入值

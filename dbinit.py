@@ -55,7 +55,11 @@ class Mongo:
     def __init__(self, current_scheme):
         self.current_scheme = current_scheme
         self.client = pymongo.MongoClient(host='10.15.108.89', port=27017)
-        self.db = self.client[self.current_scheme]        
+        if self.current_scheme == '':
+            self.db = self.client['未初始化券商']
+        else:
+            self.db = self.client[self.current_scheme]
+        self.case = []
     
     def common_init(self):
         js = open("dictionary\\" + self.current_scheme + "_请求字典" + ".json", mode='r')
@@ -81,16 +85,26 @@ class Mongo:
     
         
     def db_init(self):
-        for collection in self.db.collection_names():
-            print(self.db[collection].find({"_id":"1"}))
+        collections = self.db.collection_names()
+        if 'system.indexes' in collections:
+            collections.remove('system.indexes')
+            
+        for collection in collections:
+            self.case += list(self.db[collection].find())
+            
+            
+    def db_find(self, collection, _id):
+        return list(self.db[collection].find({'_id': _id}))[0]
             
         
-    def db_add(self):
-        pass
+    def db_add(self, collection, _id, document):
+        self.db[collection].find_one_and_update({'_id': _id},
+                                                {'$set': document},
+                                                upsert=True)
     
     
-    def db_del(self):
-        pass
+    def db_del(self, collection, _id):
+        self.db[collection].remove({"_id": _id})
 
 
 if __name__ == '__main__':
