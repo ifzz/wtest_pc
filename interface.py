@@ -54,9 +54,9 @@ class App:
         #fram1
         label8 = ttk.Label(self.frame1,text = '功能:',font = self.ft)       
         self.combobox1_value = StringVar()
-        self.combobox1 = ttk.Combobox(self.frame1,textvariable=self.combobox1_value,width=40,height=30,font=self.ft)
+        self.combobox1 = ttk.Combobox(self.frame1, textvariable = self.combobox1_value, width = 40,
+                                      height = 30, font = self.ft, postcommand = self.search_func)
         self.combobox1.bind("<<ComboboxSelected>>", self.combo1_selection)
-        self.combobox1.bind("<Return>", self.search_func)
                 
         self.labelframe1.grid(row = 1,rowspan = 30,column = 0,columnspan = 2,padx = 10,pady = 2,sticky = (N, S, W))
         label8.grid(row = 0,column = 0,padx = 10,pady = 2,sticky = W)
@@ -159,7 +159,7 @@ class App:
         self.ent8 = ttk.Entry(self.frame2,textvariable = self.ent8_value)         
         self.button5 = ttk.Button(self.frame2,text = '自动化测试',state = 'normal',command = self.atuo_test)
         self.button6 = ttk.Button(self.frame2,text = '单功能测试',state = 'disabled',
-                                  command = lambda: self.functest(self.ent7.get()))                                                       
+                                  command = lambda: self.functest(self.ent7.get()))
     
         label9.grid(row = 9,column = 2,padx = 10,pady = 2,sticky = (E, W))
         self.ent7.grid(row = 9,column = 3,columnspan = 4,padx = 0,pady = 2,sticky = (E, W))
@@ -331,16 +331,19 @@ class App:
         for i in range(0, len(self.mongo_object.case), 2):
             self.lbox.itemconfigure(i, background='#f0f0ff')         
         
-    def search_func(self, event):   
+    def search_func(self):   
         for item in self.combobox1['values']:
             if item.startswith(self.combobox1.get()):
                 #取得第一个匹配self.combobox1.get()输入值的values索引
                 index = self.combobox1['values'].index(item)
                 print(index)
                 break
-        #切换到index的位置
-        self.combobox1.current(index)
-        self.combobox1.icursor('end')
+        try:
+            #切换到index的位置
+            self.combobox1.current(index)
+            self.combobox1.icursor('end')
+        except UnboundLocalError as e:
+            print(e)
         
     def init_function(self):
         ll = []
@@ -407,7 +410,8 @@ class App:
         
     def save_scene(self):
         #取text中的_id
-        idxs = self.text.get(2.0, 3.0).split('": "')[1].split('",')[0]
+        match = re.match('(    "_id": ")(.*)(",\n)', self.text.get(2.0, 3.0))
+        idxs = match.groups()[1]
         self.mongo_object.db_add(self.combobox1.get(), idxs, json.loads(self.text.get(1.0, 'end')))
         if idxs not in self.lbox.get(0, 'end'):   
             self.lbox.insert('end', idxs)
