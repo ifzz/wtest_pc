@@ -548,7 +548,7 @@ class App:
     
     def close(self):
         print("Í¨Ñ¶¶Ï¿ª")
-        self.func_object.writer.close()
+        self.func_object.client_socket.close()
         self.button3['state'] = 'active'
         self.button4['state'] = 'disabled' 
         self.button5['state'] = 'active'
