@@ -6,7 +6,6 @@ import re
 import json
 import dbinit
 import config
-import asyncio
 import autotest
 import collections
 from tkinter import *
@@ -143,7 +142,8 @@ class App:
         self.lbox.grid_columnconfigure(6, weight=1)
         self.frame2.grid_columnconfigure(6, weight=1)
         self.lbox.bind("<Double-1>", self.modify_scene)
-         #自动初始化listbox列表
+        
+        #自动初始化listbox列表
         self.lbox_init()
     
         self.button7 = ttk.Button(self.frame2,text = '新增场景',state = 'normal',width = 12, command = self.add_scene)
@@ -172,7 +172,7 @@ class App:
         self.tree = ttk.Treeview(self.frame3, selectmode="extended")
         scrollbar2 = ttk.Scrollbar(self.frame3, orient=HORIZONTAL, command=self.tree.xview)
         scrollbar3 = ttk.Scrollbar(self.frame3, orient=VERTICAL, command=self.tree.yview)
-        self.tree.configure(xscroll=scrollbar2.set, yscroll=scrollbar3.set)
+        self.tree.configure(xscrollcommand=scrollbar2.set, yscrollcommand=scrollbar3.set)
         self.tree.bind("<Button-3>", self.copy_value)
     
         self.tree.grid(row = 11,column = 2,columnspan = 6,padx = 0,pady = 2,sticky = (N, S, E, W))
@@ -463,10 +463,10 @@ class App:
         
         #建立socket连接和AB握手
         try:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.func_object.ABProtocol(loop))
+            self.func_object.create_sokect()
             self.func_object.readdict()
         except OSError as e:
+            messagebox.showerror(title='提示', message='连接主站失败！')
             print(e)
             return
         
@@ -475,22 +475,20 @@ class App:
             for field in document['array']:
                 item = list(field.items())[0]
                 request_data += '\x01' + item[0][:4] + '=' + item[1]
-            loop = asyncio.get_event_loop()
-            self.func_object.recv_serverdata = loop.run_until_complete(self.func_object.pack_send_data(request_data))
+            self.func_object.recv_serverdata = self.func_object.pack_send_data(request_data)
             str_data = self.func_object.unpack_data()
             rec_list = self.func_object.parse_string(str_data)        
         
     def functest(self, request_data):
         print(request_data)
         try:
-            loop = asyncio.get_event_loop()
-            self.func_object.recv_serverdata = loop.run_until_complete(self.func_object.pack_send_data(request_data))
+            self.func_object.pack_send_data(request_data)
             str_data = self.func_object.unpack_data()
             self.ent8_value.set(str_data)
             rec_list = self.func_object.parse_string(str_data)
         except ConnectionResetError as e:
             print(e)
-            messagebox.showerror(title = '提示', message = '主站通讯断开！')
+            messagebox.showerror(title = '提示', message = '与主站的连接已失效，请重新建立连接！')
             self.button3['state'] = 'active'
             self.button4['state'] = 'disabled' 
             self.button5['state'] = 'active'
@@ -531,10 +529,10 @@ class App:
         
         #建立socket连接和AB握手
         try:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.func_object.ABProtocol(loop))
+            self.func_object.create_sokect()
             self.func_object.readdict()
         except OSError as e:
+            messagebox.showerror(title='提示', message='连接主站失败！')
             print(e)
             return
         

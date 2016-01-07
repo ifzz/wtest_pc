@@ -9,7 +9,6 @@ import ctypes
 import struct
 import dbinit
 import socket
-import asyncio
 import pymongo
 import config
 import collections
@@ -116,9 +115,14 @@ class Func():
         self.request_gn_zd_dict={}
         
         self.answer_gn_interpret_dict={}
-        self.answer_gn_zd_dict={}        
+        self.answer_gn_zd_dict={}
         
-    @asyncio.coroutine
+        
+    def create_sokect(self):
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.connect((self.server_ip, int(self.server_port)))
+        self.shakehands()
+        
     def shakehands(self):
         '''初始化,A,B协议认证'''   
         send_data_buffer=ctypes.create_string_buffer(b'\x00'*1024*1024)
@@ -131,12 +135,11 @@ class Func():
         if self.h==0:
             print("初始化sslc.dll失败")
         if self.send_len.value!=0:
-            self.writer.write(self.p_send_data_buffer.contents[:self.send_len.value])
-            yield from self.writer.drain()
+            self.client_socket.send(self.p_send_data_buffer.contents[:self.send_len.value])
             wt_clearbuffer(self.h,self.p_send_data_buffer)
         
         while(True):
-            (self.recv_len,self.recv_serverdata)=yield from self.recv_data()
+            (self.recv_len,self.recv_serverdata)=self.recv_data()
             
             ctypes_recv_serverdata=ctypes.create_string_buffer(self.recv_serverdata)
             p_recv_serverdata=ctypes.pointer(ctypes_recv_serverdata)
@@ -145,8 +148,7 @@ class Func():
             if ret==0:
                 pass 
             elif ret==1:
-                self.writer.write(self.p_send_data_buffer.contents[:self.send_len.value])
-                yield from self.writer.drain()
+                self.client_socket.send(self.p_send_data_buffer.contents[:self.send_len.value])
                 wt_clearbuffer(self.h,self.p_send_data_buffer)
                 continue
             elif ret==2:
@@ -162,7 +164,6 @@ class Func():
     
              
     '''接收不定长数据函数'''
-    @asyncio.coroutine
     def recv_data(self):
         total_len=0
         total_data=b''
@@ -171,7 +172,7 @@ class Func():
         packhead_len=ctypes.sizeof(CommPackInfo)
         packhead_data=CommPackInfo()
         while True:
-            sock_data=yield from self.reader.read(recv_size)
+            sock_data=self.client_socket.recv(recv_size)
             if not sock_data:
                 break
             else:
@@ -191,20 +192,6 @@ class Func():
                     total_len=data_len
                     break
         return total_len,total_data
-    
-    
-    @asyncio.coroutine
-    def ABProtocol(self, loop):
-        # Open a connection and write a few lines by using the StreamWriter object
-        self.reader, self.writer = yield from asyncio.open_connection(self.server_ip, self.server_port, loop=loop)
-            
-        try:
-            yield from self.shakehands()
-            # Waiting time
-            #yield from asyncio.sleep(5)
-        except ConnectionResetError as e:
-            self.writer.close()
-            print(e)
         
         
     def readdict(self):
@@ -218,19 +205,12 @@ class Func():
         zd=root.getElementsByTagName("字典")
         index_code=root.getElementsByTagName("索引")
             
-        #for nodes in index_code:
-        #    for node in nodes.childNodes:
-        #        if node.nodeType == node.TEXT_NODE:
-        #            self.dict_node_list.append(node.data)
-        self.dict_node_list = [node.data for nodes in index_code for node in nodes.childNodes if node.nodeType == node.TEXT_NODE]
+        self.dict_node_list = [node.data for nodes in index_code for node in nodes.childNodes 
+                               if node.nodeType == node.TEXT_NODE]
             
         index_desc=root.getElementsByTagName("字段说明")        
-        #for nodes in index_desc :
-        #    for node in nodes.childNodes:
-        #        if node.nodeType == node.TEXT_NODE:
-        #            self.dict_node_comment_list.append(node.data.strip('\t'))
         self.dict_node_comment_list = [node.data.strip('\t') for nodes in index_desc for node in nodes.childNodes 
-                                  if node.nodeType == node.TEXT_NODE]
+                                       if node.nodeType == node.TEXT_NODE]
                
         self.zd_interpret_dic=collections.OrderedDict(list(zip(self.dict_node_list,self.dict_node_comment_list)))
         
@@ -413,7 +393,6 @@ class Func():
             return
             
     
-    @asyncio.coroutine
     def pack_send_data(self, data):
         ret=wt_createpacket(self.h,0,0,ctypes.c_char_p(data.encode('gbk')),len(data.encode('gbk')),
                             ctypes.byref(self.p_send_data_buffer),ctypes.byref(self.send_len))
@@ -421,10 +400,9 @@ class Func():
             print("创建数据包失败")
             return
         else:
-            self.writer.write(self.p_send_data_buffer.contents[:self.send_len.value])
-            yield from self.writer.drain()
+            self.client_socket.send(self.p_send_data_buffer.contents[:self.send_len.value])
             wt_clearbuffer(self.h,self.p_send_data_buffer)
-            (self.recv_len,self.recv_serverdata)=yield from self.recv_data()
+            (self.recv_len,self.recv_serverdata)=self.recv_data()
             return self.recv_serverdata    
     
         
@@ -438,8 +416,7 @@ class Func():
             for k in row.keys():
                 request_data = request_data + '\x01' + k[:4] + '=' + row[k]
             print(request_data)
-            loop = asyncio.get_event_loop()
-            self.recv_serverdata = loop.run_until_complete(self.pack_send_data(request_data))
+            self.recv_serverdata = self.pack_send_data(request_data)
             str_data = self.unpack_data()
             self.parse_string(str_data)
        
@@ -500,9 +477,7 @@ if __name__ == '__main__':
     _, server_ip, server_port, qs_id = config.readbackup()
     func_object = Func(server_ip, server_port, qs_id)
     #建立socket连接和AB握手
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(func_object.ABProtocol(loop))
-    #loop.close()    
+    func_object.create_sokect()
     
     func_object.readdict()
     func_object.write_json()
