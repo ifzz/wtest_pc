@@ -3,3 +3,8 @@
 /*.sql
 /*.ini
 /*.spec
+
+dist/
+dictionary/
+build/
+__pycache__/
