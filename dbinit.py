@@ -1,11 +1,8 @@
 #!/usr/bin/python34
 #-*-coding:gbk-*-
 
-import os
 import json
-import config
 import pymongo
-import autotest
 import collections
 
 
@@ -48,8 +45,6 @@ common = ['11100客户校验',
           '12186适当性提交',
           '12282适当性信息']
 
-credit = []
-
 
 class Mongo:
     def __init__(self, current_scheme):
@@ -81,7 +76,7 @@ class Mongo:
         js.close()
         
         for i in common:
-            self.db[i].insert_many(common_fdict[i])
+            self.db[i].insert_many(common_fdict[i])     
     
         
     def db_init(self):

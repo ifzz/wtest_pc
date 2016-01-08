@@ -1,7 +1,6 @@
 #!/usr/bin/python34
 #-*-coding:gbk-*-
 
-import os
 import re
 import json
 import dbinit
@@ -18,10 +17,10 @@ class App:
     def __init__(self, parent):
         self.scheme_list = config.readschemelist()
         self.current_scheme, self.server_ip, self.server_port, self.qs_id = config.readbackup()
-        self.func_object = autotest.Func(self.server_ip, self.server_port, self.qs_id)
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
+        self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
         self.func_object.readdict()
         self.func_object.write_json()
-        self.mongo_object = dbinit.Mongo(self.current_scheme)
         
         self.parent = parent
         self.value_of_combo2 = '11100客户校验'
@@ -456,10 +455,12 @@ class App:
         config.writefunc(self.combobox2.get(), self.combobox1.get()[:5], field, value)
     
     def atuo_test(self):
+        self.current_scheme = self.combobox2.get()
         server_ip = self.ent1.get()
         server_port = self.ent2.get()
         qs_id = self.ent3.get()
-        self.func_object = autotest.Func(server_ip, server_port, qs_id)
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
+        self.func_object = autotest.Func(self.mongo_object, server_ip, server_port, qs_id)
         
         #建立socket连接和AB握手
         try:
@@ -470,6 +471,7 @@ class App:
             print(e)
             return
         
+        self.mongo_object.db_init()
         for document in self.mongo_object.case:
             request_data = ''.join("8=DZH1.0\x0121004=%s\x0121010=%s"%(document['_id'][:5], self.func_object.guid))
             for field in document['array']:
@@ -477,7 +479,8 @@ class App:
                 request_data += '\x01' + item[0][:4] + '=' + item[1]
             self.func_object.recv_serverdata = self.func_object.pack_send_data(request_data)
             str_data = self.func_object.unpack_data()
-            rec_list = self.func_object.parse_string(str_data)        
+            rec_list = self.func_object.parse_string(str_data)
+        messagebox.showinfo(title='提示', message='全部功能测试完成')
         
     def functest(self, request_data):
         print(request_data)
@@ -525,7 +528,8 @@ class App:
         self.server_ip = self.ent1.get()
         self.server_port = self.ent2.get()
         self.qs_id = self.ent3.get()
-        self.func_object = autotest.Func(self.server_ip, self.server_port, self.qs_id)
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
+        self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
         
         #建立socket连接和AB握手
         try:

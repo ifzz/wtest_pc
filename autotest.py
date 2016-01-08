@@ -3,14 +3,13 @@
 
 
 import os
-import time
 import json
 import ctypes
 import struct
 import dbinit
 import socket
-import pymongo
 import config
+import pymongo
 import collections
 from xml.dom.minidom import parseString,getDOMImplementation
 
@@ -51,12 +50,12 @@ wt_createpacket.restypes=ctypes.c_int
 
 
 class Func():
-    def __init__(self, server_ip, server_port, qs_id):
+    def __init__(self, mongo_object, server_ip, server_port, qs_id):
         '''功能处理类'''
+        self.mongo_object = mongo_object
         self.server_ip = server_ip
         self.server_port = server_port
         self.qs_id = qs_id
-        self.client = pymongo.MongoClient(host='10.15.108.89', port=27017)
         self.guid = ''
         self.h = None
         self.p_send_data_buffer = None
@@ -252,7 +251,7 @@ class Func():
             func = err_record['21004'] + ' ' + self.request_gn_interpret_dict[err_record['21004']]
         except KeyError:
             func = err_record['21004']
-        db_commontrade = self.client[self.qs_id+'应答_错误']
+        db_commontrade = self.mongo_object.client[self.qs_id+'应答_错误']
         db_commontrade[func].insert_one(err_record)
      
        
@@ -264,12 +263,11 @@ class Func():
             func = yd_gn + ' ' + self.answer_gn_interpret_dict[yd_gn]
         except KeyError:
             func = yd_gn 
-        db_commontrade = self.client[self.qs_id+'应答']
+        db_commontrade = self.mongo_object.client[self.qs_id+'应答']
         db_commontrade[func].insert_one(rec_list)
         
     
     def parse_string(self, data):
-        #str_time=time.strftime("%Y %m %d %self.h:%M:%S")
         yd_gn_index_start=data.find('\x0121004=')+len('\x0121004=')
         yd_gn_index_end=data.find("\x01",yd_gn_index_start)
         yd_gn=data[yd_gn_index_start:yd_gn_index_end]
@@ -407,14 +405,14 @@ class Func():
     
         
     def singletest(self, choice):
-        db_commontrade = self.client[self.qs_id]
-        rows = db_commontrade[choice + self.request_gn_interpret_dict.get(choice)].find()
+        db_commontrade = self.mongo_object.client[self.qs_id]
+        rows = db_commontrade[choice + ' ' + self.request_gn_interpret_dict.get(choice)].find()
         
-        for row in rows:
-            row.pop('_id')
+        for row in rows:          
             request_data = ''.join("8=DZH1.0\x0121004=%s\x0121010=%s"%(choice,self.guid))
-            for k in row.keys():
-                request_data = request_data + '\x01' + k[:4] + '=' + row[k]
+            for d in row['array']:
+                t = list(d.items())[0]
+                request_data += '\x01' + t[0][:4] + '=' + t[1]
             print(request_data)
             self.recv_serverdata = self.pack_send_data(request_data)
             str_data = self.unpack_data()
@@ -422,8 +420,9 @@ class Func():
        
         
     def autotest(self):
-        for gn in dbinit.common:
-            self.singletest(gn[:5])
+        self.mongo_object.db_init()
+        for document in self.mongo_object.case:
+            self.singletest(document['_id'][:5])
         print("全部功能测试完成")
     
 
@@ -448,9 +447,8 @@ def showmenu(obj):
     promotd='''
 提示：请在输入数据库中填入数据后，选择功能测试：
 1:单功能测试
-2:自动全功能测试
-3:压力测试
-4:退出测试
+2:自动化测试
+3:退出测试
 ------------------------------------------------------
 '''
     while(True):
@@ -474,8 +472,9 @@ def showmenu(obj):
         
 
 if __name__ == '__main__':
-    _, server_ip, server_port, qs_id = config.readbackup()
-    func_object = Func(server_ip, server_port, qs_id)
+    current_scheme, server_ip, server_port, qs_id = config.readbackup()
+    mongo_object = dbinit.Mongo(current_scheme)
+    func_object = Func(mongo_object, server_ip, server_port, qs_id)
     #建立socket连接和AB握手
     func_object.create_sokect()
     
