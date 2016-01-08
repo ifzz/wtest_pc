@@ -66,8 +66,8 @@ class App:
         label3 = ttk.Label(self.labelframe2,text = '端口:',font = self.ft)
         label4 = ttk.Label(self.labelframe2,text = '券商ID:',font = self.ft)
         label5 = ttk.Label(self.labelframe2,text = '接收超时(s):',font = self.ft)
-        label6 = ttk.Label(self.labelframe2,text = '手机号:',font = self.ft)
-        label7 = ttk.Label(self.labelframe2,text = '通讯密码:',font = self.ft)
+        label6 = ttk.Label(self.labelframe2,text = '手机号:',state = 'disabled',font = self.ft)
+        label7 = ttk.Label(self.labelframe2,text = '通讯密码:',state = 'disabled',font = self.ft)
     
         label11 = ttk.Label(self.labelframe3,text = '预留:',font = self.ft)
         label12 = ttk.Label(self.labelframe3,text = '预留:',font = self.ft)
@@ -83,14 +83,15 @@ class App:
         self.ent2_value = StringVar()
         self.ent3_value = StringVar()
         self.ent4_value = StringVar()
+        self.ent4_value.set(10)
         self.ent5_value = StringVar()
         self.ent6_value = StringVar()
         self.ent1 = ttk.Entry(self.labelframe2,textvariable = self.ent1_value)
         self.ent2 = ttk.Entry(self.labelframe2,textvariable = self.ent2_value)
         self.ent3 = ttk.Entry(self.labelframe2,textvariable = self.ent3_value)
         self.ent4 = ttk.Entry(self.labelframe2,textvariable = self.ent4_value)
-        self.ent5 = ttk.Entry(self.labelframe2,textvariable = self.ent5_value)
-        self.ent6 = ttk.Entry(self.labelframe2,textvariable = self.ent6_value)
+        self.ent5 = ttk.Entry(self.labelframe2,textvariable = self.ent5_value,state = 'disabled')
+        self.ent6 = ttk.Entry(self.labelframe2,textvariable = self.ent6_value,state = 'disabled')
     
         self.button1 = ttk.Button(self.frame2,text = '新增配置',state = 'normal',command = self.addconfig)
         self.button2 = ttk.Button(self.frame2,text = '删除配置',state = 'normal',command = self.delconfig)
@@ -310,7 +311,8 @@ class App:
             
     def combo2_selection(self, event):
         self.current_scheme, self.server_ip, self.server_port, self.qs_id = config.readbackup(self.combobox2.get())
-        self.func_object = autotest.Func(self.server_ip, self.server_port, self.qs_id)
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
+        self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
         self.func_object.readdict()
         self.func_object.write_json()      
 
@@ -456,18 +458,22 @@ class App:
     
     def atuo_test(self):
         self.current_scheme = self.combobox2.get()
-        server_ip = self.ent1.get()
-        server_port = self.ent2.get()
-        qs_id = self.ent3.get()
+        self.server_ip = self.ent1.get()
+        self.server_port = self.ent2.get()
+        self.qs_id = self.ent3.get()
         self.mongo_object = dbinit.Mongo(self.current_scheme)
-        self.func_object = autotest.Func(self.mongo_object, server_ip, server_port, qs_id)
+        self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
         
         #建立socket连接和AB握手
         try:
-            self.func_object.create_sokect()
+            self.func_object.create_sokect(int(self.ent4.get()))
             self.func_object.readdict()
         except OSError as e:
             messagebox.showerror(title='提示', message='连接主站失败！')
+            print(e)
+            return
+        except ValueError as e:
+            messagebox.showerror(title='提示', message='接收超时(s)格式非法！')
             print(e)
             return
         
@@ -533,12 +539,16 @@ class App:
         
         #建立socket连接和AB握手
         try:
-            self.func_object.create_sokect()
+            self.func_object.create_sokect(int(self.ent4.get()))
             self.func_object.readdict()
         except OSError as e:
             messagebox.showerror(title='提示', message='连接主站失败！')
             print(e)
             return
+        except ValueError as e:
+            messagebox.showerror(title='提示', message='接收超时(s)格式非法！')
+            print(e)
+            return        
         
         self.button3['state'] = 'disabled'
         self.button4['state'] = 'active'

@@ -117,13 +117,17 @@ class Func():
         self.answer_gn_zd_dict={}
         
         
-    def create_sokect(self):
+    def create_sokect(self, second):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect((self.server_ip, int(self.server_port)))
+        if second > 0:
+            self.client_socket.settimeout(second)
+        else:
+            print('Use the default timeout -1.')
         self.shakehands()
         
     def shakehands(self):
-        '''初始化,A,B协议认证'''   
+        '''初始化,A,B协议认证'''
         send_data_buffer=ctypes.create_string_buffer(b'\x00'*1024*1024)
         self.p_send_data_buffer=ctypes.pointer(send_data_buffer)
         self.send_len=ctypes.c_uint()
@@ -476,7 +480,7 @@ if __name__ == '__main__':
     mongo_object = dbinit.Mongo(current_scheme)
     func_object = Func(mongo_object, server_ip, server_port, qs_id)
     #建立socket连接和AB握手
-    func_object.create_sokect()
+    func_object.create_sokect(10)
     
     func_object.readdict()
     func_object.write_json()
