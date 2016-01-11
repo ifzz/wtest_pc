@@ -204,7 +204,7 @@ class App:
         
     def addconfig(self):
         self.toplevel = Toplevel(self.parent, borderwidth=10)
-        self.toplevel.geometry('250x150+560+300')
+        self.toplevel.geometry('250x150+560+270')
         self.toplevel.title(string='添加配置方案')
         self.toplevel.iconbitmap('console.ico')
         self.toplevel.resizable(FALSE,FALSE)
@@ -242,19 +242,27 @@ class App:
                 self.toplevel.deiconify()
             else:
                 config.writebackup(self.newly_scheme, self.server_ip, self.server_port, self.qs_id)
+                if self.onoff.get() == '1':
+                    import shutil
+                    try:
+                        shutil.copyfile("dictionary\\" + self.combobox2.get() + ".ini", 
+                                        "dictionary\\" + self.ent9_value.get() + ".ini")
+                    except FileNotFoundError as e:
+                        print(e)
+                        messagebox.showerror(title = '提示', message = '当前券商无配置，保存失败！')
+                        self.toplevel.deiconify()
+                        return
                 valueslist = list(self.combobox2['values'])
                 if self.newly_scheme not in valueslist:
                     valueslist.append(self.newly_scheme)          
                 self.combobox2['values'] = valueslist
                 self.combobox2.set(self.newly_scheme)
-                if self.onoff.get() == 1:
-                    import shutil
-                    shutil.copyfile("dictionary\\" + self.combobox1.get() + ".ini", 
-                                    "dictionary\\" + self.ent9_value.get() + ".ini")
                 messagebox.showinfo(title = '提示', message = '券商配置保存成功！')
                 self.mongo_object = dbinit.Mongo(self.newly_scheme)
+                self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)    
                 #自动初始化listbox列表
-                self.lbox_init()
+                self.lbox_init()                           
+                self.init_function()
                 self.parent.attributes('-disabled', 0)
                 self.toplevel.destroy()
     
