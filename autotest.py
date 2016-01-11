@@ -49,7 +49,7 @@ wt_createpacket=sslc_dll.DZH_DATA_CreatePackage
 wt_createpacket.restypes=ctypes.c_int
 
 
-class Func():
+class Func:
     def __init__(self, mongo_object, server_ip, server_port, qs_id):
         '''功能处理类'''
         self.mongo_object = mongo_object
@@ -479,9 +479,9 @@ if __name__ == '__main__':
     current_scheme, server_ip, server_port, qs_id = config.readbackup()
     mongo_object = dbinit.Mongo(current_scheme)
     func_object = Func(mongo_object, server_ip, server_port, qs_id)
+    
     #建立socket连接和AB握手
     func_object.create_sokect(10)
-    
     func_object.readdict()
     func_object.write_json()
     showmenu(func_object)

@@ -5,6 +5,7 @@ import dbinit
 import interface
 from tkinter import *
 
+
 if __name__ == '__main__':
     root = Tk()
     root.geometry('1100x600+100+50')
@@ -12,4 +13,3 @@ if __name__ == '__main__':
     root.iconbitmap('console.ico')
     app = interface.App(root)
     root.mainloop()
-    #dbinit.common_init()

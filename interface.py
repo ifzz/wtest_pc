@@ -204,7 +204,7 @@ class App:
         
     def addconfig(self):
         self.toplevel = Toplevel(self.parent, borderwidth=10)
-        self.toplevel.geometry('250x150+560+270')
+        self.toplevel.geometry('250x150+560+300')
         self.toplevel.title(string='添加配置方案')
         self.toplevel.iconbitmap('console.ico')
         self.toplevel.resizable(FALSE,FALSE)
@@ -569,8 +569,11 @@ class App:
         
     
     def close(self):
-        print("通讯断开")
-        self.func_object.client_socket.close()
+        try:
+            self.func_object.client_socket.close()
+            print("通讯断开")
+        except AttributeError as e:
+            print(e)
         self.button3['state'] = 'active'
         self.button4['state'] = 'disabled' 
         self.button5['state'] = 'active'
@@ -584,4 +587,3 @@ if __name__ == '__main__':
     root.iconbitmap('console.ico')
     app = App(root)
     root.mainloop()
-    #dbinit.common_init()

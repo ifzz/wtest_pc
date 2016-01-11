@@ -100,29 +100,5 @@ def initfunc(config_file, sections, options):
                 if option not in commset:
                     config.set(section, option, '')
         config.write(open('dictionary\\' + config_file + '.ini', 'w'))
-        
 
-def readcommon():
-    '''读取普通账号密码'''
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    account = config.get('common', 'account')
-    password = config.get('common', 'password')
-    return (account, password)
-
-
-def readcredit():
-    '''读取信用账号密码'''
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    account = config.get('credit', 'account')
-    password = config.get('credit', 'password')
-    return (account, password)
-    
-
-if __name__=='__main__':
-    #日志初始化
-    (server_ip, server_port, qs_id) = readserver()
-    print((server_ip, server_port. qs_id))
-    readcommon()
 
