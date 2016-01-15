@@ -11,7 +11,7 @@ import socket
 import config
 import pymongo
 import collections
-from xml.dom.minidom import parseString,getDOMImplementation
+import xml.dom.minidom
 
 
 sslc_dll=ctypes.CDLL('sslc.dll')
@@ -202,7 +202,7 @@ class Func:
             wtdict_comment=open("dictionary\\"+self.qs_id+".xml").read().replace("GB2312","UTF-8",1)
         except FileNotFoundError:
             return
-        dom=parseString(wtdict_comment)
+        dom=xml.dom.minidom.parseString(wtdict_comment)
         root=dom.documentElement
             
         zd=root.getElementsByTagName("×Öµä")

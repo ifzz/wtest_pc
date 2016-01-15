@@ -414,7 +414,7 @@ class App:
         self.showscene()
         idxs = self.lbox.selection_get()
         #查库取_id等于idxs的document
-        func_dict = self.mongo_object.db_find(self.combobox1.get(), idxs)
+        func_dict = self.mongo_object.db_find(idxs.split('_')[0], idxs)
         self.text.insert(1.0, json.dumps(collections.OrderedDict(sorted(func_dict.items())), ensure_ascii=False, indent=4))
         
     def save_scene(self):
