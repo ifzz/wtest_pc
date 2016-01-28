@@ -1,7 +1,6 @@
 #!/usr/bin/python34
 #-*-coding:gbk-*-
 
-import json
 import pymongo
 import collections
 

@@ -155,10 +155,9 @@ class Func:
                 wt_clearbuffer(self.h,self.p_send_data_buffer)
                 continue
             elif ret==2:
-                wtdict_file=open("dictionary\\"+self.qs_id+".xml",'w')
-                wtdict_file.write(self.p_send_data_buffer.contents[:self.send_len.value].decode('GB2312'))
+                with open("dictionary\\"+self.qs_id+".xml", 'w') as wtdict_file:
+                    wtdict_file.write(self.p_send_data_buffer.contents[:self.send_len.value].decode('GB2312'))
                 wt_clearbuffer(self.h,self.p_send_data_buffer)
-                wtdict_file.close()
                 print("握手成功")
                 break
             else:
@@ -199,15 +198,17 @@ class Func:
         
     def readdict(self):
         try:
-            wtdict_comment=open("dictionary\\"+self.qs_id+".xml").read().replace("GB2312","UTF-8",1)
+            fxml = open("dictionary\\"+self.qs_id+".xml", 'r')
+            wtdict_comment=fxml.read().replace("GB2312","UTF-8",1)
         except FileNotFoundError:
             return
+        else:
+            fxml.close()
+            
         dom=xml.dom.minidom.parseString(wtdict_comment)
         root=dom.documentElement
             
-        zd=root.getElementsByTagName("字典")
         index_code=root.getElementsByTagName("索引")
-            
         self.dict_node_list = [node.data for nodes in index_code for node in nodes.childNodes 
                                if node.nodeType == node.TEXT_NODE]
             
@@ -333,7 +334,7 @@ class Func:
         request_fdict=collections.OrderedDict()    #请求全部功能+字段描述字典，具体内容查看wtparam.json
         if not os.path.exists("dictionary"):
             os.mkdir("dictionary")
-        js=open("dictionary\\"+self.qs_id+"_请求字典"+".json", mode='w')
+
         for i in self.request_gn_list:
             function_chinese=str(i)+' '+self.request_gn_interpret_dict[i]
             field_chinese = map(lambda zd:str(zd)+' '+self.zd_interpret_dic[zd], self.request_gn_zd_dict[i])
@@ -350,30 +351,28 @@ class Func:
                     request_fdict[k1][num]["6130 UDID"] = ""
                 if "6131 IMEI" not in field_dict:
                     request_fdict[k1][num]["6131 IMEI"] = ""
+                    
+        with open("dictionary\\"+self.qs_id+"_请求字典.json", mode='w', encoding='utf‐8') as js:        
+            json.dump(request_fdict, js, ensure_ascii=False, indent=4)
             
-        js.write(json.dumps(request_fdict, ensure_ascii=False, indent=4))
-        js.close()           
-        request_fdk = list(request_fdict.keys())   #请求功能号+中文描述 ['11100客户检验', '11908基金委托查询', ...]
-    
+        request_fdk = list(request_fdict.keys())   #请求功能号+中文描述 ['11100客户检验', '11908基金委托查询', ...]   
         answer_fdict=collections.OrderedDict()    #应答全部功能+字段描述字典，具体内容查看wtparam.json
-        js=open("dictionary\\"+self.qs_id+"_应答字典"+".json", mode='w')
+
         for i in self.answer_gn_list:
             try:
                 function_chinese=str(i)+' '+self.answer_gn_interpret_dict[i]
                 field_chinese = map(lambda zd:str(zd)+' '+self.zd_interpret_dic[zd], self.answer_gn_zd_dict[i])
                 answer_fdict[function_chinese]=[collections.OrderedDict().fromkeys(field_chinese, '')]
             except KeyError as e:
-                print("{0}：{1} 缺少中文描述".format(function_chinese, e))      
-        js.write(json.dumps(answer_fdict, ensure_ascii=False, indent=4))
-        js.close()           
+                print("{0}：{1} 缺少中文描述".format(function_chinese, e))
+                
+        with open("dictionary\\"+self.qs_id+"_应答字典.json", mode='w', encoding='utf‐8') as js:
+            json.dump(answer_fdict, js, ensure_ascii=False, indent=4)
+       
         answer_fdk = list(answer_fdict.keys())   #应答功能号+中文描述 ['11100客户检验', '11908基金委托查询', ...]
         
         
     def ckeck_result(self):
-        pass
-        
-        
-    def generate_report(self):
         pass
         
          
