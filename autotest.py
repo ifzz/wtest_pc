@@ -124,7 +124,7 @@ class Func:
             self.client_socket.settimeout(second)
         else:
             print('Use the default timeout -1.')
-        self.shakehands()
+        return self.shakehands()
         
     def shakehands(self):
         '''初始化,A,B协议认证'''
@@ -158,11 +158,9 @@ class Func:
                 with open("dictionary\\"+self.qs_id+".xml", 'w') as wtdict_file:
                     wtdict_file.write(self.p_send_data_buffer.contents[:self.send_len.value].decode('GB2312'))
                 wt_clearbuffer(self.h,self.p_send_data_buffer)
-                print("握手成功")
-                break
+                return True
             else:
-                print("非法或校验通不过等信息")
-                break
+                return False
     
              
     '''接收不定长数据函数'''
@@ -345,8 +343,6 @@ class Func:
                 field_dict = request_fdict[k1][num].keys()
                 if "1202 版本号" not in field_dict:
                     request_fdict[k1][num]["1202 版本号"] = ""
-                if "6129 客户端细分" not in field_dict:
-                    request_fdict[k1][num]["6129 客户端细分"] = ""
                 if "6130 UDID" not in field_dict:
                     request_fdict[k1][num]["6130 UDID"] = ""
                 if "6131 IMEI" not in field_dict:
@@ -385,7 +381,7 @@ class Func:
         unpack_len=ctypes.c_uint()
         ret=wt_processdata(self.h,p_recv_serverdata,ctypes.byref(p_unpack_buffer),ctypes.byref(unpack_len))
         if ret==0:
-            str_data=p_unpack_buffer.contents[:unpack_len.value].decode('gb2312')
+            str_data=p_unpack_buffer.contents[:unpack_len.value].decode('gbk')
             wt_clearbuffer(self.h,p_unpack_buffer)
             print(str_data)
             return str_data
@@ -480,7 +476,11 @@ if __name__ == '__main__':
     func_object = Func(mongo_object, server_ip, server_port, qs_id)
     
     #建立socket连接和AB握手
-    func_object.create_sokect(10)
-    func_object.readdict()
-    func_object.write_json()
-    showmenu(func_object)
+    stauts = func_object.create_sokect(10)
+    if stauts:
+        print('与服务器握手成功')
+        func_object.readdict()
+        func_object.write_json()
+        showmenu(func_object)
+    else:
+        print("非法或校验通不过等信息")

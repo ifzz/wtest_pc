@@ -297,17 +297,21 @@ class App:
         messagebox.showinfo(title='提示', message='已复制到剪切板')
         
     def combo1_selection(self, event):
+        func_num = self.combobox1.get()[:5]
         items = map(lambda zd: str(zd)+' '+self.func_object.zd_interpret_dic[zd], 
-                   self.func_object.request_gn_zd_dict[self.combobox1.get()[:5]])       
+                   self.func_object.request_gn_zd_dict[func_num])       
         for widget in self.labelframe1.grid_slaves():
             widget.destroy()
             
-        self.request_data = ''.join("8=DZH1.0\x0121004=%s\x0121010=%s"%(self.combobox1.get()[:5],self.func_object.guid))
+        self.request_data = ''.join("8=DZH1.0\x0121004=%s\x0121010=%s"%(func_num,self.func_object.guid))
+        if func_num in ['18400','18402','18404']:
+            self.request_data += '\x0121000=1\x0121002=0'
+            
         num = 0
         for i in items:
             num = num + 1
             #取备份文件中的value
-            tempvalue = config.readfunc(self.combobox2.get(), self.combobox1.get()[:5], i[:4])
+            tempvalue = config.readfunc(self.combobox2.get(), func_num, i[:4])
             templabel = ttk.Label(self.labelframe1,text = i+':',font = self.ft,width = 20)
             templabel.grid(row = num,column = 0,padx = 2,sticky = W)
             tempentry = ttk.Entry(self.labelframe1,width = 25)        
@@ -315,6 +319,9 @@ class App:
             tempentry.insert(0, tempvalue)
             tempentry.bind('<KeyRelease>', self.func_backup)
             self.request_data += '\x01' + i[:4] + '=' + tempvalue
+            
+        if func_num in ['18400','18402','18404']:
+            self.request_data += '\x0121003=0\x0121001=1'
         self.ent7_value.set(self.request_data)
             
     def combo2_selection(self, event):
@@ -388,7 +395,7 @@ class App:
         self.toplevel.geometry('600x600+350+50')
         self.toplevel.title(string='测试场景')
         self.toplevel.iconbitmap('console.ico')
-        self.text = Text(self.toplevel, font = self.ft)
+        self.text = Text(self.toplevel, font = self.ft, undo = True)
         self.scrollbar4 = ttk.Scrollbar(self.text)
         self.text.config(yscrollcommand = self.scrollbar4.set)
         self.scrollbar4.config(command = self.text.yview)
@@ -460,8 +467,8 @@ class App:
         field = self.labelframe1.grid_slaves()[index+1]['text'][:4]
         self.request_data = self.ent7_value.get()
         
-        match = re.search('\x01'+ field + '=' + '[^\x01]*\x01', self.request_data)
-        self.ent7_value.set(self.request_data.replace(match.group(), '\x01'+ field + '=' + value + '\x01'))
+        match = re.search('\x01'+ field + '=' + '[^\x01]*', self.request_data)
+        self.ent7_value.set(self.request_data.replace(match.group(), '\x01'+ field + '=' + value))
         config.writefunc(self.combobox2.get(), self.combobox1.get()[:5], field, value)
     
     def atuo_test(self):
@@ -491,6 +498,7 @@ class App:
             for field in document['array']:
                 item = list(field.items())[0]
                 request_data += '\x01' + item[0][:4] + '=' + item[1]
+            print(request_data)
             self.func_object.recv_serverdata = self.func_object.pack_send_data(request_data)
             str_data = self.func_object.unpack_data()
             rec_list = self.func_object.parse_string(str_data)
@@ -515,26 +523,49 @@ class App:
             self.tree.delete(i)
             
         self.tree.heading('#0', text='')
-        self.tree.column("#0", width=1000)        
+        self.tree.column("#0", width=1000)
         for i in range(self.num):
             self.tree.heading('#'+str(i+1), text='')
             self.tree.column("#"+str(i+1), width=0)
-            
+        
         if rec_list != [] and rec_list != None:
             columns = [str(i) + self.func_object.zd_interpret_dic[i] for i in rec_list[0].keys()]
             self.num = len(columns)
             self.tree['columns'] = columns
             self.tree.heading('#0', text='序号', anchor='center')
-            self.tree.column('#0', stretch=NO, minwidth=0, width=50, anchor='w')
+            self.tree.column('#0', stretch=True, minwidth=0, width=50, anchor='w')
             for i in range(self.num):
                 self.tree.heading('#'+str(i+1), text=columns[i], anchor='w')  
-                self.tree.column('#'+str(i+1), stretch=NO, minwidth=0, width=100, anchor='w')
-        
+                self.tree.column('#'+str(i+1), stretch=True, minwidth=0, width=100, anchor='w')
+
+            rowscolumn_widthlist = []
             for i in range(len(rec_list)):
+                rowlist = []
+                num = 0
+                for x in rec_list[0].keys():
+                    if x in rec_list[i].keys():
+                        rowlist.append(rec_list[i][x])
+                        try:
+                            rowscolumn_widthlist[num] = max(len(rec_list[i][x].encode('gbk')), rowscolumn_widthlist[num])
+                        except IndexError:
+                            rowscolumn_widthlist.append(len(rec_list[i][x].encode('gbk')))
+                    else:
+                        rowlist.append('')
+                        try:
+                            rowscolumn_widthlist[num] = max(0, rowscolumn_widthlist[num])
+                        except IndexError:
+                            rowscolumn_widthlist.append(0)
+                    num += 1
                 if i%2 == 0:
-                    self.tree.insert('',i,text=str(i+1),values=[j[1] for j in rec_list[i].items()], tags=('oddrow',))
+                    self.tree.insert('', i, text=str(i+1), values=rowlist, tags=('oddrow',))
                 else:
-                    self.tree.insert('',i,text=str(i+1),values=[j[1] for j in rec_list[i].items()], tags=('evenrow',))
+                    self.tree.insert('', i, text=str(i+1), values=rowlist, tags=('evenrow',))
+                    
+            for y in range(len(rowscolumn_widthlist)):                    
+                if len(columns[y].encode('gbk')) > rowscolumn_widthlist[y]:
+                    self.tree.column('#'+str(y+1), stretch=True, minwidth=0, width=8*len(columns[y].encode('gbk')), anchor='w')
+                else:
+                    self.tree.column('#'+str(y+1), stretch=True, minwidth=0, width=8*rowscolumn_widthlist[y], anchor='w')
             self.tree.tag_configure('evenrow', background='#f0f0ff')
         
     def connect(self):
@@ -547,7 +578,7 @@ class App:
         
         #建立socket连接和AB握手
         try:
-            self.func_object.create_sokect(int(self.ent4.get()))
+            stauts = self.func_object.create_sokect(int(self.ent4.get()))
             self.func_object.readdict()
         except OSError as e:
             messagebox.showerror(title='提示', message='连接主站失败！')
@@ -558,26 +589,32 @@ class App:
             print(e)
             return        
         
-        self.button3['state'] = 'disabled'
-        self.button4['state'] = 'active'
-        self.button5['state'] = 'disabled'
-        self.button6['state'] = 'active'
-        self.init_function()
-        messagebox.showinfo(title = '提示', message = '与服务器握手成功')
-        config.writebackup(self.current_scheme, self.server_ip, self.server_port, self.qs_id)
-        config.initfunc(self.current_scheme, self.func_object.request_gn_list, self.func_object.request_gn_zd_dict)
+        if stauts:
+            self.button3['state'] = 'disabled'
+            self.button4['state'] = 'active'
+            self.button5['state'] = 'disabled'
+            self.button6['state'] = 'active'
+            self.init_function()
+            messagebox.showinfo(title = '提示', message = '与服务器握手成功')
+            config.writebackup(self.current_scheme, self.server_ip, self.server_port, self.qs_id)
+            config.initfunc(self.current_scheme, self.func_object.request_gn_list, self.func_object.request_gn_zd_dict)
+        else:
+            messagebox.showerror(title = '提示', message = '非法或校验通不过等信息')
         
     
     def close(self):
         try:
             self.func_object.client_socket.close()
-            print("通讯断开")
+            messagebox.showinfo(title = '提示', message = '通讯断开')
         except AttributeError as e:
             print(e)
-        self.button3['state'] = 'active'
-        self.button4['state'] = 'disabled' 
-        self.button5['state'] = 'active'
-        self.button6['state'] = 'disabled'
+        except ConnectionAbortedError as e:
+            print(e)
+        finally:
+            self.button3['state'] = 'active'
+            self.button4['state'] = 'disabled' 
+            self.button5['state'] = 'active'
+            self.button6['state'] = 'disabled'
         
 
 if __name__ == '__main__':
