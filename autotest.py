@@ -310,7 +310,7 @@ class Func:
                 rec=yd_record.split("\x01")
                 pair_list=[]
                 for i in rec:
-                    pair_list.append(i.split("="))
+                    pair_list.append(i.split("=",1))
                    
                 
                 for i in range(len(pair_list)):
