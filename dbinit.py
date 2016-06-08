@@ -1,5 +1,5 @@
-#!/usr/bin/python35
-#-*-coding:gbk-*-
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 import pymongo
 import collections
@@ -10,7 +10,7 @@ class Mongo:
         self.current_scheme = current_scheme
         self.client = pymongo.MongoClient(host='10.15.108.89', port=27017)
         if self.current_scheme == '':
-            self.db = self.client['Î´³õÊ¼»¯È¯ÉÌ']
+            self.db = self.client['æœªåˆå§‹åŒ–åˆ¸å•†']
         else:
             self.db = self.client[self.current_scheme]
         self.case = []
