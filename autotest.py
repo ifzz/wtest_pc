@@ -1,6 +1,5 @@
-#!/usr/bin/python35
-#-*-coding:gbk-*-
-
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 import os
 import json
@@ -10,48 +9,49 @@ import dbinit
 import socket
 import config
 import pymongo
+import asyncio
 import collections
 import xml.dom.minidom
 
 
 sslc_dll=ctypes.CDLL('sslc.dll')
 
-'''¶¨Òå°üÍ·½á¹¹'''
+'''å®šä¹‰åŒ…å¤´ç»“æ„'''
 class CommPackInfo(ctypes.Structure):
     _fields_=[("crc32",ctypes.c_ulong),("compressed",ctypes.c_ubyte),("packtype",ctypes.c_ubyte),("cookie",ctypes.c_ulong),
               ("synid",ctypes.c_ulong),("rawlen",ctypes.c_ulong),("packlen",ctypes.c_ulong),("packdata",ctypes.c_char*0)]
     _pack_=1
 
-'''³õÊ¼»¯»·¾³º¯Êı'''
+'''åˆå§‹åŒ–ç¯å¢ƒå‡½æ•°'''
 wt_init=sslc_dll.DZH_DATA_Init
 wt_init.restypes=ctypes.c_int
 
-'''ÊÍ·Å»·¾³º¯Êı'''
+'''é‡Šæ”¾ç¯å¢ƒå‡½æ•°'''
 wt_uninit=sslc_dll.DZH_DATA_Uninit
 wt_uninit.argtypes=[ctypes.c_int]
 wt_uninit.restypes=ctypes.c_void_p
 
-'''´¦Àí·şÎñ¶ËÊÕ¹ıÀ´µÄÊı¾İº¯Êı'''
+'''å¤„ç†æœåŠ¡ç«¯æ”¶è¿‡æ¥çš„æ•°æ®å‡½æ•°'''
 wt_processdata=sslc_dll.DZH_DATA_ProcessServerData
 wt_processdata.restypes=ctypes.c_int
 
-'''ÇåÀí»º³åº¯Êı'''
+'''æ¸…ç†ç¼“å†²å‡½æ•°'''
 wt_clearbuffer=sslc_dll.DZH_DATA_FreeBuf
 wt_clearbuffer.restypes=ctypes.c_void_p
 
-'''»ñÈ¡´íÎóº¯Êı'''
+'''è·å–é”™è¯¯å‡½æ•°'''
 wt_getlasterr=sslc_dll.DZH_DATA_GetLastErr
 wt_getlasterr.argtypes=[ctypes.c_int]
 wt_getlasterr.restypes=ctypes.c_char_p
 
-'''´´½¨·¢ËÍ°üº¯Êı'''
+'''åˆ›å»ºå‘é€åŒ…å‡½æ•°'''
 wt_createpacket=sslc_dll.DZH_DATA_CreatePackage
 wt_createpacket.restypes=ctypes.c_int
 
 
 class Func:
     def __init__(self, mongo_object, server_ip, server_port, qs_id):
-        '''¹¦ÄÜ´¦ÀíÀà'''
+        '''åŠŸèƒ½å¤„ç†ç±»'''
         self.mongo_object = mongo_object
         self.server_ip = server_ip
         self.server_port = server_port
@@ -66,20 +66,20 @@ class Func:
         self.recv_len = None
         
         ''' 
-            self.dict_node_list ×Ö¶ÎÁĞ±í
-            self.dict_node_comment_list    ×Ö¶ÎÃèÊöÁĞ±í
-            self.zd_interpret_dic ×Ö¶ÎÃèÊö×Öµä
+            self.dict_node_list å­—æ®µåˆ—è¡¨
+            self.dict_node_comment_list    å­—æ®µæè¿°åˆ—è¡¨
+            self.zd_interpret_dic å­—æ®µæè¿°å­—å…¸
         '''
         self.dict_node_list=[]
         self.dict_node_comment_list=[]
         self.zd_interpret_dic={}
         
         '''
-            self.gn_list ¹¦ÄÜÁĞ±í
-            self.gninterpret_list ¹¦ÄÜÃèÊöÁĞ±í
-            self.zd_list ×Ö¶ÎÁĞ±í
-            self.gn_interpret_dic ¹¦ÄÜÃèÊö×Öµä
-            self.gn_zd_dic ¹¦ÄÜ×Ö¶Î×Öµä
+            self.gn_list åŠŸèƒ½åˆ—è¡¨
+            self.gninterpret_list åŠŸèƒ½æè¿°åˆ—è¡¨
+            self.zd_list å­—æ®µåˆ—è¡¨
+            self.gn_interpret_dic åŠŸèƒ½æè¿°å­—å…¸
+            self.gn_zd_dic åŠŸèƒ½å­—æ®µå­—å…¸
         '''
         self.gn_list=[]
         self.gninterpret_list=[]
@@ -88,19 +88,19 @@ class Func:
         self.gn_zd_dic={}
         
         '''
-            self.request_gn_list        ÇëÇó¹¦ÄÜÁĞ±í
-            self.request_gn_interpret_list    ÇëÇó¹¦ÃèÊöÁĞ±í
-            self.request_gn_zd_list        ÇëÇó¹¦ÄÜ×Ö¶Î±í
+            self.request_gn_list        è¯·æ±‚åŠŸèƒ½åˆ—è¡¨
+            self.request_gn_interpret_list    è¯·æ±‚åŠŸæè¿°åˆ—è¡¨
+            self.request_gn_zd_list        è¯·æ±‚åŠŸèƒ½å­—æ®µè¡¨
             
-            self.answer_gn_list        Ó¦´ğ¹¦ÄÜÁĞ±í
-            self.answer_gn_interpret_list   Ó¦´ğ¹¦ÃèÊöÁĞ±í 
-            self.answer_gn_zd_list            Ó¦´ğ¹¦ÄÜ×Ö¶Î±í
+            self.answer_gn_list        åº”ç­”åŠŸèƒ½åˆ—è¡¨
+            self.answer_gn_interpret_list   åº”ç­”åŠŸæè¿°åˆ—è¡¨ 
+            self.answer_gn_zd_list            åº”ç­”åŠŸèƒ½å­—æ®µè¡¨
             
-            self.request_gn_interpret_dict  ÇëÇó¹¦ÄÜÃèÊö×Öµä
-            self.request_gn_zd_dict        ÇëÇó¹¦ÄÜ×Ö¶Î×Öµä
+            self.request_gn_interpret_dict  è¯·æ±‚åŠŸèƒ½æè¿°å­—å…¸
+            self.request_gn_zd_dict        è¯·æ±‚åŠŸèƒ½å­—æ®µå­—å…¸
             
-            self.answer_gn_interpret_dict    Ó¦´ğ¹¦ÃèÊö×Öµä
-            self.answer_gn_zd_dict        Ó¦´ğ¹¦ÄÜ×Ö¶Î×Öµä
+            self.answer_gn_interpret_dict    åº”ç­”åŠŸæè¿°å­—å…¸
+            self.answer_gn_zd_dict        åº”ç­”åŠŸèƒ½å­—æ®µå­—å…¸
         '''
         self.request_gn_list=[]
         self.request_gn_interpret_list=[]
@@ -127,7 +127,7 @@ class Func:
         return self.shakehands()
         
     def shakehands(self):
-        '''³õÊ¼»¯,A,BĞ­ÒéÈÏÖ¤'''
+        '''åˆå§‹åŒ–,A,Båè®®è®¤è¯'''
         send_data_buffer=ctypes.create_string_buffer(b'\x00'*1024*1024)
         self.p_send_data_buffer=ctypes.pointer(send_data_buffer)
         self.send_len=ctypes.c_uint()
@@ -136,7 +136,7 @@ class Func:
         self.h=wt_init(c_qs_name,ctypes.byref(self.p_send_data_buffer),ctypes.byref(self.send_len))
         
         if self.h==0:
-            print("³õÊ¼»¯sslc.dllÊ§°Ü")
+            print("åˆå§‹åŒ–sslc.dllå¤±è´¥")
         if self.send_len.value!=0:
             self.client_socket.send(self.p_send_data_buffer.contents[:self.send_len.value])
             wt_clearbuffer(self.h,self.p_send_data_buffer)
@@ -163,7 +163,7 @@ class Func:
                 return False
     
              
-    '''½ÓÊÕ²»¶¨³¤Êı¾İº¯Êı'''
+    '''æ¥æ”¶ä¸å®šé•¿æ•°æ®å‡½æ•°'''
     def recv_data(self):
         total_len=0
         total_data=b''
@@ -206,11 +206,11 @@ class Func:
         dom=xml.dom.minidom.parseString(wtdict_comment)
         root=dom.documentElement
             
-        index_code=root.getElementsByTagName("Ë÷Òı")
+        index_code=root.getElementsByTagName("ç´¢å¼•")
         self.dict_node_list = [node.data for nodes in index_code for node in nodes.childNodes 
                                if node.nodeType == node.TEXT_NODE]
             
-        index_desc=root.getElementsByTagName("×Ö¶ÎËµÃ÷")        
+        index_desc=root.getElementsByTagName("å­—æ®µè¯´æ˜")        
         self.dict_node_comment_list = [node.data.strip('\t') for nodes in index_desc for node in nodes.childNodes 
                                        if node.nodeType == node.TEXT_NODE]
                
@@ -249,24 +249,24 @@ class Func:
         
     
     def write_err_log(self, err_record):
-        print("ÊÕµ½´íÎóÊı¾İ")
+        print("æ”¶åˆ°é”™è¯¯æ•°æ®")
         try:
             func = err_record['21004'] + ' ' + self.request_gn_interpret_dict[err_record['21004']]
         except KeyError:
             func = err_record['21004']
-        db_commontrade = self.mongo_object.client[self.qs_id+'Ó¦´ğ_´íÎó']
+        db_commontrade = self.mongo_object.client[self.qs_id+'åº”ç­”_é”™è¯¯']
         db_commontrade[func].insert_one(err_record)
      
        
     def write_log(self, yd_gn, rec_list):
-        print("´¦Àí³É¹¦·µ»Ø")
+        print("å¤„ç†æˆåŠŸè¿”å›")
         if rec_list==[]:
             return
         try:
             func = yd_gn + ' ' + self.answer_gn_interpret_dict[yd_gn]
         except KeyError:
             func = yd_gn 
-        db_commontrade = self.mongo_object.client[self.qs_id+'Ó¦´ğ']
+        db_commontrade = self.mongo_object.client[self.qs_id+'åº”ç­”']
         db_commontrade[func].insert_one(rec_list)
         
     
@@ -316,7 +316,7 @@ class Func:
                 for i in range(len(pair_list)):
                     try:
                         if pair_list[i][0] not in self.answer_gn_zd_dict[yd_gn]:
-                            print(("%s×Ö¶ÎÃ»ÓĞÔÚÓ¦´ğµÄ%s¹¦ÄÜ×ÖµäÖĞ"%(pair_list[i][0]+self.zd_interpret_dic[pair_list[i][0]],
+                            print(("%så­—æ®µæ²¡æœ‰åœ¨åº”ç­”çš„%såŠŸèƒ½å­—å…¸ä¸­"%(pair_list[i][0]+self.zd_interpret_dic[pair_list[i][0]],
                                                                     yd_gn+self.answer_gn_interpret_dict[yd_gn])))
                         else:
                             rec_dict.update(dict({pair_list[i][0]:pair_list[i][1]}))
@@ -329,7 +329,7 @@ class Func:
      
      
     def write_json(self):
-        request_fdict=collections.OrderedDict()    #ÇëÇóÈ«²¿¹¦ÄÜ+×Ö¶ÎÃèÊö×Öµä£¬¾ßÌåÄÚÈİ²é¿´wtparam.json
+        request_fdict=collections.OrderedDict()    #è¯·æ±‚å…¨éƒ¨åŠŸèƒ½+å­—æ®µæè¿°å­—å…¸ï¼Œå…·ä½“å†…å®¹æŸ¥çœ‹wtparam.json
         if not os.path.exists("dictionary"):
             os.mkdir("dictionary")
 
@@ -341,18 +341,18 @@ class Func:
         for k1 in request_fdict:
             for num in range(0, len(request_fdict[k1])):
                 field_dict = request_fdict[k1][num].keys()
-                if "1202 °æ±¾ºÅ" not in field_dict:
-                    request_fdict[k1][num]["1202 °æ±¾ºÅ"] = ""
+                if "1202 ç‰ˆæœ¬å·" not in field_dict:
+                    request_fdict[k1][num]["1202 ç‰ˆæœ¬å·"] = ""
                 if "6130 UDID" not in field_dict:
                     request_fdict[k1][num]["6130 UDID"] = ""
                 if "6131 IMEI" not in field_dict:
                     request_fdict[k1][num]["6131 IMEI"] = ""
                     
-        with open("dictionary\\"+self.qs_id+"_ÇëÇó×Öµä.json", mode='w', encoding='utf©\8') as js:        
+        with open("dictionary\\"+self.qs_id+"_è¯·æ±‚å­—å…¸.json", mode='w', encoding='utfâ€8') as js:        
             json.dump(request_fdict, js, ensure_ascii=False, indent=4)
             
-        request_fdk = list(request_fdict.keys())   #ÇëÇó¹¦ÄÜºÅ+ÖĞÎÄÃèÊö ['11100¿Í»§¼ìÑé', '11908»ù½ğÎ¯ÍĞ²éÑ¯', ...]   
-        answer_fdict=collections.OrderedDict()    #Ó¦´ğÈ«²¿¹¦ÄÜ+×Ö¶ÎÃèÊö×Öµä£¬¾ßÌåÄÚÈİ²é¿´wtparam.json
+        request_fdk = list(request_fdict.keys())   #è¯·æ±‚åŠŸèƒ½å·+ä¸­æ–‡æè¿° ['11100å®¢æˆ·æ£€éªŒ', '11908åŸºé‡‘å§”æ‰˜æŸ¥è¯¢', ...]   
+        answer_fdict=collections.OrderedDict()    #åº”ç­”å…¨éƒ¨åŠŸèƒ½+å­—æ®µæè¿°å­—å…¸ï¼Œå…·ä½“å†…å®¹æŸ¥çœ‹wtparam.json
 
         for i in self.answer_gn_list:
             try:
@@ -360,12 +360,12 @@ class Func:
                 field_chinese = map(lambda zd:str(zd)+' '+self.zd_interpret_dic[zd], self.answer_gn_zd_dict[i])
                 answer_fdict[function_chinese]=[collections.OrderedDict().fromkeys(field_chinese, '')]
             except KeyError as e:
-                print("{0}£º{1} È±ÉÙÖĞÎÄÃèÊö".format(function_chinese, e))
+                print("{0}ï¼š{1} ç¼ºå°‘ä¸­æ–‡æè¿°".format(function_chinese, e))
                 
-        with open("dictionary\\"+self.qs_id+"_Ó¦´ğ×Öµä.json", mode='w', encoding='utf©\8') as js:
+        with open("dictionary\\"+self.qs_id+"_åº”ç­”å­—å…¸.json", mode='w', encoding='utfâ€8') as js:
             json.dump(answer_fdict, js, ensure_ascii=False, indent=4)
        
-        answer_fdk = list(answer_fdict.keys())   #Ó¦´ğ¹¦ÄÜºÅ+ÖĞÎÄÃèÊö ['11100¿Í»§¼ìÑé', '11908»ù½ğÎ¯ÍĞ²éÑ¯', ...]
+        answer_fdk = list(answer_fdict.keys())   #åº”ç­”åŠŸèƒ½å·+ä¸­æ–‡æè¿° ['11100å®¢æˆ·æ£€éªŒ', '11908åŸºé‡‘å§”æ‰˜æŸ¥è¯¢', ...]
         
         
     def ckeck_result(self):
@@ -386,7 +386,7 @@ class Func:
             print(str_data)
             return str_data
         else:
-            print("½â°ü³ö´í£¡")
+            print("è§£åŒ…å‡ºé”™ï¼")
             return
             
     
@@ -394,13 +394,13 @@ class Func:
         ret=wt_createpacket(self.h,0,0,ctypes.c_char_p(data.encode('gbk')),len(data.encode('gbk')),
                             ctypes.byref(self.p_send_data_buffer),ctypes.byref(self.send_len))
         if ret==-1:
-            print("´´½¨Êı¾İ°üÊ§°Ü")
+            print("åˆ›å»ºæ•°æ®åŒ…å¤±è´¥")
             return
         else:
             self.client_socket.send(self.p_send_data_buffer.contents[:self.send_len.value])
             wt_clearbuffer(self.h,self.p_send_data_buffer)
             (self.recv_len,self.recv_serverdata)=self.recv_data()
-            return self.recv_serverdata    
+            return self.recv_serverdata
     
         
     def singletest(self, choice):
@@ -422,18 +422,110 @@ class Func:
         self.mongo_object.db_init()
         for document in self.mongo_object.case:
             self.singletest(document['_id'][:5])
-        print("È«²¿¹¦ÄÜ²âÊÔÍê³É")
+        print("å…¨éƒ¨åŠŸèƒ½æµ‹è¯•å®Œæˆ")
     
+
+class SubFunc(Func):
+    def __init__(self, mongo_object, server_ip, server_port, qs_id):
+        super().__init__(mongo_object, server_ip, server_port, qs_id)
+        self.streams = []
+        
+    async def create_sokect(self, loop):
+        # Open a connection
+        reader, writer = await asyncio.open_connection(self.server_ip, self.server_port, loop=loop)
+        try:
+            self.streams.append((reader, writer))
+            await self.shakehands(reader, writer)
+        except ConnectionResetError as e:
+            writer.close()
+            print(e)
+    
+    async def shakehands(self, reader, writer):
+        '''åˆå§‹åŒ–,A,Båè®®è®¤è¯'''
+        send_data_buffer=ctypes.create_string_buffer(b'\x00'*1024*1024)
+        self.p_send_data_buffer=ctypes.pointer(send_data_buffer)
+        self.send_len=ctypes.c_uint()
+        c_qs_name=ctypes.c_char_p(self.qs_id.encode('gbk'))
+        self.h=ctypes.c_int()
+        self.h=wt_init(c_qs_name,ctypes.byref(self.p_send_data_buffer),ctypes.byref(self.send_len))
+
+        if self.h==0:
+            print("åˆå§‹åŒ–sslc.dllå¤±è´¥")
+        if self.send_len.value!=0:
+            writer.write(self.p_send_data_buffer.contents[:self.send_len.value])
+            wt_clearbuffer(self.h,self.p_send_data_buffer)
+
+        while(True):
+            (self.recv_len,self.recv_serverdata)=await self.recv_data(reader)
+
+            ctypes_recv_serverdata=ctypes.create_string_buffer(self.recv_serverdata)
+            p_recv_serverdata=ctypes.pointer(ctypes_recv_serverdata)
+
+            ret=wt_processdata(self.h,p_recv_serverdata,ctypes.byref(self.p_send_data_buffer),ctypes.byref(self.send_len))
+            if ret==0:
+                pass 
+            elif ret==1:
+                writer.write(self.p_send_data_buffer.contents[:self.send_len.value])
+                wt_clearbuffer(self.h,self.p_send_data_buffer)
+                continue
+            elif ret==2:
+                wt_clearbuffer(self.h,self.p_send_data_buffer)
+                return True
+            else:
+                return False
+
+
+    '''æ¥æ”¶ä¸å®šé•¿æ•°æ®å‡½æ•°'''
+    async def recv_data(self, reader):
+        total_len=0
+        total_data=b''
+        sock_data=b''
+        recv_size=8192
+        packhead_len=ctypes.sizeof(CommPackInfo)
+        packhead_data=CommPackInfo()
+        while True:
+            sock_data=await reader.read(recv_size)
+            if not sock_data:
+                break
+            else:
+                total_data+=sock_data
+                data_len=len(total_data)
+            if data_len>packhead_len:
+                tmpdata=struct.unpack("<LBBLLLL",total_data[:packhead_len])
+                packhead_data.crc32=tmpdata[0]
+                packhead_data.compressed=tmpdata[1]
+                packhead_data.packtype=tmpdata[2]
+                packhead_data.cookie=tmpdata[3]
+                packhead_data.synid=tmpdata[4]
+                packhead_data.rawlen=tmpdata[5]
+                packhead_data.packlen=tmpdata[6]
+
+                if data_len==packhead_len+packhead_data.packlen:
+                    total_len=data_len
+                    break
+        return total_len,total_data
+    
+    async def pack_send_data(self, reader, writer, data):
+        ret=wt_createpacket(self.h,0,0,ctypes.c_char_p(data.encode('gbk')),len(data.encode('gbk')),
+                            ctypes.byref(self.p_send_data_buffer),ctypes.byref(self.send_len))
+        if ret==-1:
+            print("åˆ›å»ºæ•°æ®åŒ…å¤±è´¥")
+            return
+        else:
+            writer.write(self.p_send_data_buffer.contents[:self.send_len.value])
+            wt_clearbuffer(self.h,self.p_send_data_buffer)
+            (recv_len, recv_serverdata)=await self.recv_data(reader)
+            return recv_len, recv_serverdata
 
 def show_sub_menu(obj):  
     while(True):
         while(True):
             try:
-                choice=input("ÇëÊäÈë¹¦ÄÜºÅ:").strip()[:5]
+                choice=input("è¯·è¾“å…¥åŠŸèƒ½å·:").strip()[:5]
             except(EOFError,KeyboardInterrupt,IndexError):
                 choice='88888'
             if choice not in obj.request_gn_list and choice!='88888':
-                print("ÊäÈëµÄ¹¦ÄÜºÅÎŞĞ§£¬ÇëÖØĞÂÊäÈë£º")
+                print("è¾“å…¥çš„åŠŸèƒ½å·æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼š")
             else:
                 break
         if choice=='88888':
@@ -444,10 +536,10 @@ def show_sub_menu(obj):
     
 def showmenu(obj):
     promotd='''
-ÌáÊ¾£ºÇëÔÚÊäÈëÊı¾İ¿âÖĞÌîÈëÊı¾İºó£¬Ñ¡Ôñ¹¦ÄÜ²âÊÔ£º
-1:µ¥¹¦ÄÜ²âÊÔ
-2:×Ô¶¯»¯²âÊÔ
-3:ÍË³ö²âÊÔ
+æç¤ºï¼šè¯·åœ¨è¾“å…¥æ•°æ®åº“ä¸­å¡«å…¥æ•°æ®åï¼Œé€‰æ‹©åŠŸèƒ½æµ‹è¯•ï¼š
+1:å•åŠŸèƒ½æµ‹è¯•
+2:è‡ªåŠ¨åŒ–æµ‹è¯•
+3:é€€å‡ºæµ‹è¯•
 ------------------------------------------------------
 '''
     while(True):
@@ -455,11 +547,11 @@ def showmenu(obj):
             try:
                 print(("-"*60))
                 print(promotd)
-                choice=input("ÇëÑ¡Ôñ£º").strip()[0]
+                choice=input("è¯·é€‰æ‹©ï¼š").strip()[0]
             except(EOFError,KeyboardInterrupt,IndexError):
                 choice='3'
             if choice not in '123':
-                print("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÑ¡Ôñ£º")
+                print("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°é€‰æ‹©ï¼š")
             else:
                 break
         if choice=='1':
@@ -475,12 +567,12 @@ if __name__ == '__main__':
     mongo_object = dbinit.Mongo(current_scheme)
     func_object = Func(mongo_object, server_ip, server_port, qs_id)
     
-    #½¨Á¢socketÁ¬½ÓºÍABÎÕÊÖ
+    #å»ºç«‹socketè¿æ¥å’ŒABæ¡æ‰‹
     stauts = func_object.create_sokect(10)
     if stauts:
-        print('Óë·şÎñÆ÷ÎÕÊÖ³É¹¦')
+        print('ä¸æœåŠ¡å™¨æ¡æ‰‹æˆåŠŸ')
         func_object.readdict()
         func_object.write_json()
         showmenu(func_object)
     else:
-        print("·Ç·¨»òĞ£ÑéÍ¨²»¹ıµÈĞÅÏ¢")
+        print("éæ³•æˆ–æ ¡éªŒé€šä¸è¿‡ç­‰ä¿¡æ¯")

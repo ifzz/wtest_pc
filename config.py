@@ -1,5 +1,5 @@
-#!/usr/bin/python35
-#-*-coding:gbk-*-
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 import os
 import configparser

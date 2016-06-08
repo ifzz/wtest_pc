@@ -1,5 +1,5 @@
-#!/usr/bin/python35
-#-*-coding:gbk-*-
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 import dbinit
 import interface
@@ -9,7 +9,7 @@ from tkinter import *
 if __name__ == '__main__':
     root = Tk()
     root.geometry('1100x600+100+50')
-    root.title(string='Î¯ÍĞ·şÎñ¶Ë²âÊÔ¹¤¾ß')
+    root.title(string='å§”æ‰˜æœåŠ¡ç«¯æµ‹è¯•å·¥å…·')
     root.iconbitmap('console.ico')
     app = interface.App(root)
     root.mainloop()

@@ -1,11 +1,14 @@
-#!/usr/bin/python35
-#-*-coding:gbk-*-
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 import re
 import json
 import dbinit
 import config
+import asyncio
 import autotest
+import datetime
+import threading
 import collections
 from tkinter import *
 from tkinter import ttk
@@ -23,34 +26,34 @@ class App:
         self.func_object.write_json()
         
         self.parent = parent
-        self.value_of_combo2 = '11100¿Í»§Ğ£Ñé'
-        self.ft = font.Font(family = 'Î¢ÈíÑÅºÚ',size = 9,weight = font.BOLD)
+        self.value_of_combo2 = '11100å®¢æˆ·æ ¡éªŒ'
+        self.ft = font.Font(family = 'å¾®è½¯é›…é»‘',size = 9,weight = font.BOLD)
         #self.parent.option_add("*TCombobox*Listbox*Font", self.ft)
         self.parent.option_add("*Font", self.ft)
         self.num = 0
 
-        #-------------------×é¼şÊ¹ÓÃ¶àÁĞ£¨¶àĞĞ£©-------------------------------
-        # columnspan£ºÖ¸¶¨Ê¹ÓÃ¼¸ÁĞ
-        # rowspan£ºÖ¸¶¨Ê¹ÓÃ¼¸ĞĞ
+        #-------------------ç»„ä»¶ä½¿ç”¨å¤šåˆ—ï¼ˆå¤šè¡Œï¼‰-------------------------------
+        # columnspanï¼šæŒ‡å®šä½¿ç”¨å‡ åˆ—
+        # rowspanï¼šæŒ‡å®šä½¿ç”¨å‡ è¡Œ
     
-        #-------------------ÉèÖÃ¶ÔÆëÊôĞÔ----------------------------------------------
-        # sticky£ºÉèÖÃ×é¼ş¶ÔÆë·½Ê½
-        # Ä¬ÈÏÊôĞÔÏÂ£¬×é¼şµÄ¶ÔÆë·½Ê½Îª¾ÓÖĞ£¬ÉèÖÃsticky ÊôĞÔ¿ÉÒÔ¿ØÖÆ¶ÔÆë·½Ê½£¬¿ÉÓÃµÄÖµ
-        #£¨N,S,E,W£©¼°Æä×éºÏÖµ
+        #-------------------è®¾ç½®å¯¹é½å±æ€§----------------------------------------------
+        # stickyï¼šè®¾ç½®ç»„ä»¶å¯¹é½æ–¹å¼
+        # é»˜è®¤å±æ€§ä¸‹ï¼Œç»„ä»¶çš„å¯¹é½æ–¹å¼ä¸ºå±…ä¸­ï¼Œè®¾ç½®sticky å±æ€§å¯ä»¥æ§åˆ¶å¯¹é½æ–¹å¼ï¼Œå¯ç”¨çš„å€¼
+        #ï¼ˆN,S,E,Wï¼‰åŠå…¶ç»„åˆå€¼
     
         self.frame1 = ttk.Frame(self.parent)
         self.frame2 = ttk.Frame(self.parent)
         self.frame3 = ttk.Frame(self.parent, padding=(10,0,0,0))
-        self.labelframe1 = ttk.LabelFrame(self.frame1,text = '¹¦ÄÜÅäÖÃ')
-        self.labelframe2 = ttk.LabelFrame(self.frame2,text = '²ÎÊıÅäÖÃ')
-        self.labelframe3 = ttk.LabelFrame(self.frame2,text = 'Ô¤ÁôÅäÖÃ')
+        self.labelframe1 = ttk.LabelFrame(self.frame1,text = 'åŠŸèƒ½é…ç½®')
+        self.labelframe2 = ttk.LabelFrame(self.frame2,text = 'å‚æ•°é…ç½®')
+        self.labelframe3 = ttk.LabelFrame(self.frame2,text = 'å‹åŠ›æµ‹è¯•')
     
         self.frame1.grid(row=0, rowspan=26, column=0, columnspan=2, sticky=(N, S, W))
         self.frame2.grid(row=0, rowspan=5, column=2, columnspan=4, sticky=(N, E, W)) 
         self.frame3.grid(row=11, rowspan=2, column=2, columnspan=7, sticky=(N, W, E, S)) 
     
         #fram1
-        label8 = ttk.Label(self.frame1,text = '¹¦ÄÜ:',font = self.ft)       
+        label8 = ttk.Label(self.frame1,text = 'åŠŸèƒ½:',font = self.ft)       
         self.combobox1_value = StringVar()
         self.combobox1 = ttk.Combobox(self.frame1, textvariable = self.combobox1_value, width = 40,
                                       height = 30, font = self.ft, postcommand = self.search_func)
@@ -61,18 +64,13 @@ class App:
         self.combobox1.grid(row = 0,column = 1,padx = 0,pady = 2,sticky = EW)  
     
         #fram2
-        label1 = ttk.Label(self.frame2,text = 'µ±Ç°·½°¸:',font = self.ft)
-        label2 = ttk.Label(self.labelframe2,text = 'IPµØÖ·:',font = self.ft)
-        label3 = ttk.Label(self.labelframe2,text = '¶Ë¿Ú:',font = self.ft)
-        label4 = ttk.Label(self.labelframe2,text = 'È¯ÉÌID:',font = self.ft)
-        label5 = ttk.Label(self.labelframe2,text = '½ÓÊÕ³¬Ê±(s):',font = self.ft)
-        label6 = ttk.Label(self.labelframe2,text = 'ÊÖ»úºÅ:',state = 'disabled',font = self.ft)
-        label7 = ttk.Label(self.labelframe2,text = 'Í¨Ñ¶ÃÜÂë:',state = 'disabled',font = self.ft)
-    
-        label11 = ttk.Label(self.labelframe3,text = 'Ô¤Áô:',font = self.ft)
-        label12 = ttk.Label(self.labelframe3,text = 'Ô¤Áô:',font = self.ft)
-        label13 = ttk.Label(self.labelframe3,text = 'Ô¤Áô:',font = self.ft)
-        label14 = ttk.Label(self.labelframe3,text = 'Ô¤Áô:',font = self.ft)         
+        label1 = ttk.Label(self.frame2,text = 'å½“å‰æ–¹æ¡ˆ:',font = self.ft)
+        label2 = ttk.Label(self.labelframe2,text = 'IPåœ°å€:',font = self.ft)
+        label3 = ttk.Label(self.labelframe2,text = 'ç«¯å£:',font = self.ft)
+        label4 = ttk.Label(self.labelframe2,text = 'åˆ¸å•†ID:',font = self.ft)
+        label5 = ttk.Label(self.labelframe2,text = 'æ¥æ”¶è¶…æ—¶(s):',font = self.ft)
+        label6 = ttk.Label(self.labelframe2,text = 'æ‰‹æœºå·:',state = 'disabled',font = self.ft)
+        label7 = ttk.Label(self.labelframe2,text = 'é€šè®¯å¯†ç :',state = 'disabled',font = self.ft)
     
         self.combobox2_value = StringVar()
         self.combobox2 = ttk.Combobox(self.frame2, textvariable=self.combobox2_value, state='readonly', font=self.ft)
@@ -93,10 +91,10 @@ class App:
         self.ent5 = ttk.Entry(self.labelframe2,textvariable = self.ent5_value,state = 'disabled')
         self.ent6 = ttk.Entry(self.labelframe2,textvariable = self.ent6_value,state = 'disabled')
     
-        self.button1 = ttk.Button(self.frame2,text = 'ĞÂÔöÅäÖÃ',state = 'normal',command = self.addconfig)
-        self.button2 = ttk.Button(self.frame2,text = 'É¾³ıÅäÖÃ',state = 'normal',command = self.delconfig)
-        self.button3 = ttk.Button(self.labelframe2,text = 'Á¬½Ó',state = 'normal',command = self.connect)
-        self.button4 = ttk.Button(self.labelframe2,text = '¶Ï¿ª',state = 'disabled',command = self.close)
+        self.button1 = ttk.Button(self.frame2,text = 'æ–°å¢é…ç½®',state = 'normal',command = self.addconfig)
+        self.button2 = ttk.Button(self.frame2,text = 'åˆ é™¤é…ç½®',state = 'normal',command = self.delconfig)
+        self.button3 = ttk.Button(self.labelframe2,text = 'è¿æ¥',state = 'normal',command = self.connect)
+        self.button4 = ttk.Button(self.labelframe2,text = 'æ–­å¼€',state = 'disabled',command = self.close)
         
         self.combobox2.set(self.current_scheme)
         self.ent1_value.set(self.server_ip)
@@ -128,71 +126,96 @@ class App:
         self.button3.grid(row = 4,column = 4,padx = 0,pady = 2,sticky = (N, E))
         self.button4.grid(row = 4,column = 5,padx = 0,pady = 2,sticky = (N, E))
     
-        self.labelframe3.grid(row = 5,rowspan = 4,column = 2,columnspan = 4,padx = 10,pady = 2,sticky = (N, W, E, S))
-        label11.grid(row = 5,column = 2,padx = 10,pady = 2,sticky = (N, W))
-        label12.grid(row = 6,column = 2,padx = 10,pady = 2,sticky = (N, W))
-        label13.grid(row = 7,column = 2,padx = 10,pady = 2,sticky = (N, W))
-        label14.grid(row = 8,column = 2,padx = 10,pady = 2,sticky = (N, W))
-    
         self.lbox = Listbox(self.frame2, height=5, selectmode="extended")
-        self.lbox.grid(row=0, rowspan=8, column=6, columnspan=2, padx = 0,pady = 2, sticky=(N, W, E, S))
+        self.lbox.grid(row=0, rowspan=9, column=6, columnspan=2, padx = 0,pady = 2, sticky=(N, W, E, S))
         scrollbar1 = ttk.Scrollbar(self.frame2, orient=VERTICAL, command=self.lbox.yview)
-        scrollbar1.grid(row=0, rowspan=8, column=8, padx = 0,pady = 2, sticky=(N, S))
+        scrollbar1.grid(row=0, rowspan=9, column=8, padx = 0,pady = 2, sticky=(N, S))
         self.lbox['yscrollcommand'] = scrollbar1.set
         self.lbox.grid_columnconfigure(6, weight=1)
         self.frame2.grid_columnconfigure(6, weight=1)
         self.lbox.bind("<Double-1>", self.modify_scene)
         
-        #×Ô¶¯³õÊ¼»¯listboxÁĞ±í
+        #è‡ªåŠ¨åˆå§‹åŒ–listboxåˆ—è¡¨
         self.lbox_init()
     
-        self.button7 = ttk.Button(self.frame2,text = 'ĞÂÔö³¡¾°',state = 'normal',width = 12, command = self.add_scene)
-        self.button8 = ttk.Button(self.frame2,text = 'É¾³ı³¡¾°',state = 'normal',width = 12, command = self.del_scene)  
-        self.button7.grid(row = 8,column = 6,padx = 0,pady = 2,sticky = E)
-        self.button8.grid(row = 8,column = 7,padx = 0,pady = 2,sticky = (E, W))        
+        self.button7 = ttk.Button(self.frame2,text = 'æ–°å¢åœºæ™¯',state = 'normal',width = 12, command = self.add_scene)
+        self.button8 = ttk.Button(self.frame2,text = 'åˆ é™¤åœºæ™¯',state = 'normal',width = 12, command = self.del_scene)  
+        self.button7.grid(row = 9,column = 6,padx = 0,pady = 2,sticky = E)
+        self.button8.grid(row = 9,column = 7,padx = 0,pady = 2,sticky = (E, W))        
     
-        label9 = ttk.Label(self.frame2,text = 'ÇëÇó°ü:',font = self.ft)
-        label10 = ttk.Label(self.frame2,text = 'Ó¦´ğ°ü:',font = self.ft)
+        label9 = ttk.Label(self.frame2,text = 'è¯·æ±‚åŒ…:',font = self.ft)
+        label10 = ttk.Label(self.frame2,text = 'åº”ç­”åŒ…:',font = self.ft)
         self.ent7_value = StringVar()
         self.ent8_value = StringVar()
         self.ent7 = ttk.Entry(self.frame2,textvariable = self.ent7_value)
         self.ent8 = ttk.Entry(self.frame2,textvariable = self.ent8_value)         
-        self.button5 = ttk.Button(self.frame2,text = '×Ô¶¯»¯²âÊÔ',state = 'normal',command = self.atuo_test)
-        self.button6 = ttk.Button(self.frame2,text = 'µ¥¹¦ÄÜ²âÊÔ',state = 'disabled',
+        self.button5 = ttk.Button(self.frame2,text = 'è‡ªåŠ¨åŒ–æµ‹è¯•',state = 'normal',command = self.atuo_test)
+        self.button6 = ttk.Button(self.frame2,text = 'å•åŠŸèƒ½æµ‹è¯•',state = 'disabled',
                                   command = lambda: self.functest(self.ent7.get()))
     
-        label9.grid(row = 9,column = 2,padx = 10,pady = 2,sticky = (E, W))
-        self.ent7.grid(row = 9,column = 3,columnspan = 4,padx = 0,pady = 2,sticky = (E, W))
-        label10.grid(row = 10,column = 2,padx = 10,pady = 0,sticky = (E, W))
-        self.ent8.grid(row = 10,column = 3,columnspan = 4,padx = 0,pady = 0,sticky = (E, W))
-        self.button5.grid(row = 9,column = 7,padx = 0,pady = 2,sticky = (E, W))
-        self.button6.grid(row = 10,column = 7,padx = 0,pady = 2,sticky = (E, W))
+        label9.grid(row = 10,column = 2,padx = 10,pady = 2,sticky = (E, W))
+        self.ent7.grid(row = 10,column = 3,columnspan = 4,padx = 0,pady = 2,sticky = (E, W))
+        label10.grid(row = 11,column = 2,padx = 10,pady = 0,sticky = (E, W))
+        self.ent8.grid(row = 11,column = 3,columnspan = 4,padx = 0,pady = 0,sticky = (E, W))
+        self.button5.grid(row = 10,column = 7,padx = 0,pady = 2,sticky = (E, W))
+        self.button6.grid(row = 11,column = 7,padx = 0,pady = 2,sticky = (E, W))
     
         #frame3
+        label11 = ttk.Label(self.labelframe3,text = 'è¿æ¥æ•°:',font = self.ft)
+        label12 = ttk.Label(self.labelframe3,text = 'æ¯æ¬¡è¿æ¥å»¶æ—¶(ms):',font = self.ft)
+        label13 = ttk.Label(self.labelframe3,text = 'æ¯è·¯è¿æ¥å‘é€é—´éš”(ms):',font = self.ft)
+        label14 = ttk.Label(self.labelframe3,text = 'è®¡æ—¶å™¨:',font = self.ft)
+        self.label = ttk.Label(self.labelframe3,text = '0:00:00.000000',font = self.ft)
+    
+        self.ent10_value = StringVar()
+        self.ent11_value = StringVar()
+        self.ent12_value = StringVar()
+        self.ent10_value.set(500)
+        self.ent11_value.set(1000)
+        self.ent12_value.set(1000)
+        self.ent10 = ttk.Entry(self.labelframe3,textvariable = self.ent10_value)
+        self.ent11 = ttk.Entry(self.labelframe3,textvariable = self.ent11_value)
+        self.ent12 = ttk.Entry(self.labelframe3,textvariable = self.ent12_value)
+        
+        self.button13 = ttk.Button(self.labelframe3,text = 'å¼€å§‹',state = 'normal',command = self.start)
+        self.button14 = ttk.Button(self.labelframe3,text = 'ç»“æŸ',state = 'disabled',command = self.end)
+        
+        self.labelframe3.grid(row = 5,rowspan = 4,column = 2,columnspan = 4,padx = 10,pady = 2,sticky = (N, W, E, S))
+        label11.grid(row = 5,column = 2,padx = 10,pady = 2,sticky = (N, W))
+        self.ent10.grid(row = 5,column = 3,padx = 0,pady = 2,sticky = (N, W))
+        label12.grid(row = 6,column = 2,padx = 10,pady = 2,sticky = (N, W))
+        self.ent11.grid(row = 6,column = 3,padx = 0,pady = 2,sticky = (N, W))
+        label13.grid(row = 7,column = 2,padx = 10,pady = 2,sticky = (N, W))
+        self.ent12.grid(row = 7,column = 3,padx = 0,pady = 2,sticky = (N, W))
+        label14.grid(row = 8,column = 2,padx = 10,pady = 2,sticky = (N, W))
+        self.label.grid(row = 8,column = 3,padx = 0,pady = 2,sticky = (N, W))
+        self.button13.grid(row = 9,column = 2,padx = 10,pady = 2,sticky = (N, E))
+        self.button14.grid(row = 9,column = 3,padx = 0,pady = 2,sticky = (N, E))
+
         self.tree = ttk.Treeview(self.frame3, selectmode="extended")
         scrollbar2 = ttk.Scrollbar(self.frame3, orient=HORIZONTAL, command=self.tree.xview)
         scrollbar3 = ttk.Scrollbar(self.frame3, orient=VERTICAL, command=self.tree.yview)
         self.tree.configure(xscrollcommand=scrollbar2.set, yscrollcommand=scrollbar3.set)
         self.tree.bind("<Button-3>", self.copy_value)
     
-        self.tree.grid(row = 11,column = 2,columnspan = 6,padx = 0,pady = 2,sticky = (N, S, E, W))
-        scrollbar2.grid(row=12, column=2, columnspan = 6, sticky=(E, W))
-        scrollbar3.grid(row=11, rowspan=2, column=8, padx = 0,pady = 2, sticky=(N, S))       
+        self.tree.grid(row = 12,column = 2,columnspan = 6,padx = 0,pady = 2,sticky = (N, S, E, W))
+        scrollbar2.grid(row=13, column=2, columnspan = 6, sticky=(E, W))
+        scrollbar3.grid(row=12, rowspan=2, column=8, padx = 0,pady = 2, sticky=(N, S))       
     
         self.ent7.grid_columnconfigure(3, weight=1)
         self.ent8.grid_columnconfigure(3, weight=1)
-        self.tree.grid_rowconfigure(11, weight=1)
+        self.tree.grid_rowconfigure(12, weight=1)
         self.tree.grid_columnconfigure(2, weight=1)
-        self.frame3.grid_rowconfigure(11, weight=1)
+        self.frame3.grid_rowconfigure(12, weight=1)
         self.frame3.grid_columnconfigure(2, weight=1)
-        self.parent.grid_rowconfigure(11, weight=1)
+        self.parent.grid_rowconfigure(12, weight=1)
         self.parent.grid_columnconfigure(2, weight=1)
         
-        #¹¦ÄÜÑ¡Ïî½çÃæ³õÊ¼»¯
+        #åŠŸèƒ½é€‰é¡¹ç•Œé¢åˆå§‹åŒ–
         self.init_function()
         
     def lbox_init(self):
-        #´ÓmongodbÈ¡lboxµÄitemsÁĞ±í
+        #ä»mongodbå–lboxçš„itemsåˆ—è¡¨
         self.mongo_object.db_init()
         self.lbox.delete(0, 'end')
         for item in self.mongo_object.case:
@@ -205,18 +228,18 @@ class App:
     def addconfig(self):
         self.toplevel = Toplevel(self.parent, borderwidth=10)
         self.toplevel.geometry('250x150+560+300')
-        self.toplevel.title(string='Ìí¼ÓÅäÖÃ·½°¸')
+        self.toplevel.title(string='æ·»åŠ é…ç½®æ–¹æ¡ˆ')
         self.toplevel.iconbitmap('console.ico')
         self.toplevel.resizable(FALSE,FALSE)
     
-        label13 = ttk.Label(self.toplevel,text = 'ĞÂÔö·½°¸Ãû³Æ:',font = self.ft)
+        label13 = ttk.Label(self.toplevel,text = 'æ–°å¢æ–¹æ¡ˆåç§°:',font = self.ft)
         self.ent9_value = StringVar()
         self.ent9 = ttk.Entry(self.toplevel,textvariable = self.ent9_value,width = 19)
         self.onoff = StringVar()
         self.onoff.set(0)        
-        self.checkbutton = ttk.Checkbutton(self.toplevel, variable = self.onoff, text = '±£´æµ±Ç°ÅäÖÃ')
-        self.button11 = ttk.Button(self.toplevel,text = 'È·¶¨',state = 'normal',command = self.saveconfig)
-        self.button12 = ttk.Button(self.toplevel,text = 'È¡Ïû',state = 'normal',command = self.cancel)
+        self.checkbutton = ttk.Checkbutton(self.toplevel, variable = self.onoff, text = 'ä¿å­˜å½“å‰é…ç½®')
+        self.button11 = ttk.Button(self.toplevel,text = 'ç¡®å®š',state = 'normal',command = self.saveconfig)
+        self.button12 = ttk.Button(self.toplevel,text = 'å–æ¶ˆ',state = 'normal',command = self.cancel)
         
         label13.grid(row = 0,column = 0,padx = 0,pady = 8,sticky = (N, S, E, W))
         self.ent9.grid(row = 0,column = 1,padx = 0,pady = 8,sticky = (N, S, E, W))
@@ -234,11 +257,11 @@ class App:
         self.qs_id = self.ent3.get()
 
         if self.newly_scheme == '' or self.server_ip == '' or self.server_port == '' or self.qs_id == '':
-            messagebox.showerror(title = 'ÌáÊ¾', message = 'ĞÂÔö·½°¸/IPµØÖ·/¶Ë¿Ú/È¯ÉÌID²»ÄÜÎª¿Õ£¡')
+            messagebox.showerror(title = 'æç¤º', message = 'æ–°å¢æ–¹æ¡ˆ/IPåœ°å€/ç«¯å£/åˆ¸å•†IDä¸èƒ½ä¸ºç©ºï¼')
             self.toplevel.deiconify()
         else:
             if self.newly_scheme in self.combobox2['values']:
-                messagebox.showerror(title = 'ÌáÊ¾', message = 'ĞÂÔö·½°¸ÒÑ´æÔÚ£¡')
+                messagebox.showerror(title = 'æç¤º', message = 'æ–°å¢æ–¹æ¡ˆå·²å­˜åœ¨ï¼')
                 self.toplevel.deiconify()
             else:
                 config.writebackup(self.newly_scheme, self.server_ip, self.server_port, self.qs_id)
@@ -249,7 +272,7 @@ class App:
                                         "dictionary\\" + self.ent9_value.get() + ".ini")
                     except FileNotFoundError as e:
                         print(e)
-                        messagebox.showerror(title = 'ÌáÊ¾', message = 'µ±Ç°È¯ÉÌÎŞÅäÖÃ£¬±£´æÊ§°Ü£¡')
+                        messagebox.showerror(title = 'æç¤º', message = 'å½“å‰åˆ¸å•†æ— é…ç½®ï¼Œä¿å­˜å¤±è´¥ï¼')
                         self.toplevel.deiconify()
                         return
                 valueslist = list(self.combobox2['values'])
@@ -257,17 +280,17 @@ class App:
                     valueslist.append(self.newly_scheme)          
                 self.combobox2['values'] = valueslist
                 self.combobox2.set(self.newly_scheme)
-                messagebox.showinfo(title = 'ÌáÊ¾', message = 'È¯ÉÌÅäÖÃ±£´æ³É¹¦£¡')
+                messagebox.showinfo(title = 'æç¤º', message = 'åˆ¸å•†é…ç½®ä¿å­˜æˆåŠŸï¼')
                 self.mongo_object = dbinit.Mongo(self.newly_scheme)
                 self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)    
-                #×Ô¶¯³õÊ¼»¯listboxÁĞ±í
+                #è‡ªåŠ¨åˆå§‹åŒ–listboxåˆ—è¡¨
                 self.lbox_init()                           
                 self.init_function()
                 self.parent.attributes('-disabled', 0)
                 self.toplevel.destroy()
     
     def delconfig(self):
-        if messagebox.askyesno(title = 'ÌáÊ¾', message = 'È·ÈÏÉ¾³ı£¿'):
+        if messagebox.askyesno(title = 'æç¤º', message = 'ç¡®è®¤åˆ é™¤ï¼Ÿ'):
             delvalue = self.combobox2.get()
             valueslist = list(self.combobox2['values'])
             valueslist.remove(delvalue)      
@@ -283,7 +306,7 @@ class App:
             self.ent3_value.set(self.qs_id)
             config.deletebackup(delvalue, curvalue)
             self.mongo_object = dbinit.Mongo(curvalue)
-            #×Ô¶¯³õÊ¼»¯listboxÁĞ±í
+            #è‡ªåŠ¨åˆå§‹åŒ–listboxåˆ—è¡¨
             self.lbox_init()            
             
     def copy_value(self, event):
@@ -294,7 +317,7 @@ class App:
             templist.append(item["values"])
         self.tree.clipboard_clear()
         self.tree.clipboard_append(tuple(templist))
-        messagebox.showinfo(title='ÌáÊ¾', message='ÒÑ¸´ÖÆµ½¼ôÇĞ°å')
+        messagebox.showinfo(title='æç¤º', message='å·²å¤åˆ¶åˆ°å‰ªåˆ‡æ¿')
         
     def combo1_selection(self, event):
         func_num = self.combobox1.get()[:5]
@@ -310,7 +333,7 @@ class App:
         num = 0
         for i in items:
             num = num + 1
-            #È¡±¸·İÎÄ¼şÖĞµÄvalue
+            #å–å¤‡ä»½æ–‡ä»¶ä¸­çš„value
             tempvalue = config.readfunc(self.combobox2.get(), func_num, i[:4])
             templabel = ttk.Label(self.labelframe1,text = i+':',font = self.ft,width = 20)
             templabel.grid(row = num,column = 0,padx = 2,sticky = W)
@@ -345,17 +368,19 @@ class App:
     
         # Colorize alternating lines of the listbox
         for i in range(0, len(self.mongo_object.case), 2):
-            self.lbox.itemconfigure(i, background='#f0f0ff')         
+            self.lbox.itemconfigure(i, background='#f0f0ff')
+            
+        self.label.configure(text='0:00:00.000000')
         
     def search_func(self):   
         for item in self.combobox1['values']:
             if item.startswith(self.combobox1.get()):
-                #È¡µÃµÚÒ»¸öÆ¥Åäself.combobox1.get()ÊäÈëÖµµÄvaluesË÷Òı
+                #å–å¾—ç¬¬ä¸€ä¸ªåŒ¹é…self.combobox1.get()è¾“å…¥å€¼çš„valuesç´¢å¼•
                 index = self.combobox1['values'].index(item)
                 print(index)
                 break
         try:
-            #ÇĞ»»µ½indexµÄÎ»ÖÃ
+            #åˆ‡æ¢åˆ°indexçš„ä½ç½®
             self.combobox1.current(index)
             self.combobox1.icursor('end')
         except UnboundLocalError as e:
@@ -371,7 +396,7 @@ class App:
         for widget in self.labelframe1.grid_slaves():
             widget.destroy()
             
-        #¹¦ÄÜ²ÎÊı³õÊ¼»¯
+        #åŠŸèƒ½å‚æ•°åˆå§‹åŒ–
         if self.func_object.request_gn_interpret_dict != {}:
             self.combobox1.current(0)
             self.request_data = ''.join("8=DZH1.0\x0121004=%s\x0121010=%s"%(self.combobox1.get()[:5],self.func_object.guid))
@@ -393,14 +418,14 @@ class App:
     def showscene(self):   
         self.toplevel = Toplevel(self.parent)
         self.toplevel.geometry('600x600+350+50')
-        self.toplevel.title(string='²âÊÔ³¡¾°')
+        self.toplevel.title(string='æµ‹è¯•åœºæ™¯')
         self.toplevel.iconbitmap('console.ico')
         self.text = Text(self.toplevel, font = self.ft, undo = True)
         self.scrollbar4 = ttk.Scrollbar(self.text)
         self.text.config(yscrollcommand = self.scrollbar4.set)
         self.scrollbar4.config(command = self.text.yview)
-        self.button9 = ttk.Button(self.toplevel, text = 'ÍË³ö', state = 'normal', width = 15, command = self.cancel)
-        self.button10 = ttk.Button(self.toplevel, text = '±£´æ', state = 'normal', width = 15, command = self.save_scene)
+        self.button9 = ttk.Button(self.toplevel, text = 'é€€å‡º', state = 'normal', width = 15, command = self.cancel)
+        self.button10 = ttk.Button(self.toplevel, text = 'ä¿å­˜', state = 'normal', width = 15, command = self.save_scene)
 
         self.text.pack(expand = YES, fill = BOTH)
         self.scrollbar4.pack(side = RIGHT, fill = Y)
@@ -414,18 +439,18 @@ class App:
     def cancel(self):
         self.toplevel.destroy()
         self.parent.attributes('-disabled', 0)
-        #ÏÔÊ¾¸¸´°¿Ú
+        #æ˜¾ç¤ºçˆ¶çª—å£
         self.parent.deiconify()
         
     def modify_scene(self, event):
         self.showscene()
         idxs = self.lbox.selection_get()
-        #²é¿âÈ¡_idµÈÓÚidxsµÄdocument
+        #æŸ¥åº“å–_idç­‰äºidxsçš„document
         func_dict = self.mongo_object.db_find(idxs.split('_')[0], idxs)
         self.text.insert(1.0, json.dumps(collections.OrderedDict(sorted(func_dict.items())), ensure_ascii=False, indent=4))
         
     def save_scene(self):
-        #È¡textÖĞµÄ_id
+        #å–textä¸­çš„_id
         match = re.match('(    "_id": ")(.*)(",\n)', self.text.get(2.0, 3.0))
         idxs = match.groups()[1]
         self.mongo_object.db_add(self.combobox1.get(), idxs, json.loads(self.text.get(1.0, 'end')))
@@ -444,7 +469,7 @@ class App:
                 entry_list.append(widget.get())
             else:
                 label_list.append(widget['text'])
-        func_dict['_id'] = self.combobox1.get() + '_³¡¾°XX'
+        func_dict['_id'] = self.combobox1.get() + '_åœºæ™¯XX'
         func_dict['array'] = [{k:v} for k,v in list(zip(list(reversed(label_list)), list(reversed(entry_list))))]
         self.text.insert(1.0, json.dumps(func_dict, ensure_ascii=False, indent=4))
         
@@ -459,11 +484,11 @@ class App:
             self.mongo_object.db_del(idxs[:10], idxs)
     
     def func_backup(self, event):
-        #È¡½¹µã¿Ø¼şentryµÄÊäÈëÖµ
+        #å–ç„¦ç‚¹æ§ä»¶entryçš„è¾“å…¥å€¼
         value = self.parent.focus_get().get()
-        #È¡½¹µã¿Ø¼şentryÔÚlabelframe1¿Ø¼şÁĞ±íÖĞµÄË÷Òı
+        #å–ç„¦ç‚¹æ§ä»¶entryåœ¨labelframe1æ§ä»¶åˆ—è¡¨ä¸­çš„ç´¢å¼•
         index = self.labelframe1.grid_slaves().index(self.parent.focus_get())
-        #È¡entry¶ÔÓ¦labelµÄ×Ö¶ÎºÅ
+        #å–entryå¯¹åº”labelçš„å­—æ®µå·
         field = self.labelframe1.grid_slaves()[index+1]['text'][:4]
         self.request_data = self.ent7_value.get()
         
@@ -479,16 +504,16 @@ class App:
         self.mongo_object = dbinit.Mongo(self.current_scheme)
         self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
         
-        #½¨Á¢socketÁ¬½ÓºÍABÎÕÊÖ
+        #å»ºç«‹socketè¿æ¥å’ŒABæ¡æ‰‹
         try:
             self.func_object.create_sokect(int(self.ent4.get()))
             self.func_object.readdict()
         except OSError as e:
-            messagebox.showerror(title='ÌáÊ¾', message='Á¬½ÓÖ÷Õ¾Ê§°Ü£¡')
+            messagebox.showerror(title='æç¤º', message='è¿æ¥ä¸»ç«™å¤±è´¥ï¼')
             print(e)
             return
         except ValueError as e:
-            messagebox.showerror(title='ÌáÊ¾', message='½ÓÊÕ³¬Ê±(s)¸ñÊ½·Ç·¨£¡')
+            messagebox.showerror(title='æç¤º', message='æ¥æ”¶è¶…æ—¶(s)æ ¼å¼éæ³•ï¼')
             print(e)
             return
         
@@ -502,22 +527,51 @@ class App:
             self.func_object.recv_serverdata = self.func_object.pack_send_data(request_data)
             str_data = self.func_object.unpack_data()
             rec_list = self.func_object.parse_string(str_data)
-        messagebox.showinfo(title='ÌáÊ¾', message='È«²¿¹¦ÄÜ²âÊÔÍê³É')
+        messagebox.showinfo(title='æç¤º', message='å…¨éƒ¨åŠŸèƒ½æµ‹è¯•å®Œæˆ')
+        
+    def stresstest(self):
+        connectnums = int(self.ent10.get())
+        delaytimes = int(self.ent11.get())/1000
+        intervaltimes = int(self.ent12.get())/1000
+        self.mongo_object = dbinit.Mongo(self.current_scheme)
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        tasks = []
+        
+        for i in range(connectnums):
+            self.subfunc_object = autotest.SubFunc(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
+            try:
+                tasks.append(asyncio.async(self.subfunc_object.create_sokect(loop)))
+            except ValueError as e:
+                print(e)
+                continue      
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.run_forever()
+        
+    async def singlestress(self):
+        for r, w in self.subfunc_object.streams:
+            await self.subfunc_object.pack_send_data(r, w, self.ent7.get())
         
     def functest(self, request_data):
         print(request_data)
         try:
             self.func_object.pack_send_data(request_data)
             str_data = self.func_object.unpack_data()
-            self.ent8_value.set(str_data)
+            if len(str_data) < 2048:
+                self.ent8_value.set(str_data)
+            else:
+                self.ent8_value.set('text string is too long, can not be displayed.')
             rec_list = self.func_object.parse_string(str_data)
-        except ConnectionResetError as e:
+        except (ConnectionResetError, ConnectionAbortedError) as e:
             print(e)
-            messagebox.showerror(title = 'ÌáÊ¾', message = 'ÓëÖ÷Õ¾µÄÁ¬½ÓÒÑÊ§Ğ§£¬ÇëÖØĞÂ½¨Á¢Á¬½Ó£¡')
+            messagebox.showerror(title = 'æç¤º', message = 'ä¸ä¸»ç«™çš„è¿æ¥å·²å¤±æ•ˆï¼Œè¯·é‡æ–°å»ºç«‹è¿æ¥ï¼')
             self.button3['state'] = 'active'
             self.button4['state'] = 'disabled' 
             self.button5['state'] = 'active'
             self.button6['state'] = 'disabled'
+            self.ent8_value.set('')
+            rec_list = None
             
         for i in self.tree.get_children(): 
             self.tree.delete(i)
@@ -532,7 +586,7 @@ class App:
             columns = [str(i) + self.func_object.zd_interpret_dic[i] for i in rec_list[0].keys()]
             self.num = len(columns)
             self.tree['columns'] = columns
-            self.tree.heading('#0', text='ĞòºÅ', anchor='center')
+            self.tree.heading('#0', text='åºå·', anchor='center')
             self.tree.column('#0', stretch=True, minwidth=0, width=50, anchor='w')
             for i in range(self.num):
                 self.tree.heading('#'+str(i+1), text=columns[i], anchor='w')  
@@ -576,16 +630,16 @@ class App:
         self.mongo_object = dbinit.Mongo(self.current_scheme)
         self.func_object = autotest.Func(self.mongo_object, self.server_ip, self.server_port, self.qs_id)
         
-        #½¨Á¢socketÁ¬½ÓºÍABÎÕÊÖ
+        #å»ºç«‹socketè¿æ¥å’ŒABæ¡æ‰‹
         try:
             stauts = self.func_object.create_sokect(int(self.ent4.get()))
             self.func_object.readdict()
         except OSError as e:
-            messagebox.showerror(title='ÌáÊ¾', message='Á¬½ÓÖ÷Õ¾Ê§°Ü£¡')
+            messagebox.showerror(title='æç¤º', message='è¿æ¥ä¸»ç«™å¤±è´¥ï¼')
             print(e)
             return
         except ValueError as e:
-            messagebox.showerror(title='ÌáÊ¾', message='½ÓÊÕ³¬Ê±(s)¸ñÊ½·Ç·¨£¡')
+            messagebox.showerror(title='æç¤º', message='æ¥æ”¶è¶…æ—¶(s)æ ¼å¼éæ³•ï¼')
             print(e)
             return        
         
@@ -595,17 +649,16 @@ class App:
             self.button5['state'] = 'disabled'
             self.button6['state'] = 'active'
             self.init_function()
-            messagebox.showinfo(title = 'ÌáÊ¾', message = 'Óë·şÎñÆ÷ÎÕÊÖ³É¹¦')
+            messagebox.showinfo(title = 'æç¤º', message = 'ä¸æœåŠ¡å™¨æ¡æ‰‹æˆåŠŸ')
             config.writebackup(self.current_scheme, self.server_ip, self.server_port, self.qs_id)
             config.initfunc(self.current_scheme, self.func_object.request_gn_list, self.func_object.request_gn_zd_dict)
         else:
-            messagebox.showerror(title = 'ÌáÊ¾', message = '·Ç·¨»òĞ£ÑéÍ¨²»¹ıµÈĞÅÏ¢')
+            messagebox.showerror(title = 'æç¤º', message = 'éæ³•æˆ–æ ¡éªŒé€šä¸è¿‡ç­‰ä¿¡æ¯')
         
-    
     def close(self):
         try:
             self.func_object.client_socket.close()
-            messagebox.showinfo(title = 'ÌáÊ¾', message = 'Í¨Ñ¶¶Ï¿ª')
+            messagebox.showinfo(title = 'æç¤º', message = 'é€šè®¯æ–­å¼€')
         except AttributeError as e:
             print(e)
         except ConnectionAbortedError as e:
@@ -615,12 +668,36 @@ class App:
             self.button4['state'] = 'disabled' 
             self.button5['state'] = 'active'
             self.button6['state'] = 'disabled'
+            
+    def start(self):
+        t = threading.Thread(target=self.stresstest)
+        self.starttime = datetime.datetime.now()
+        self.update_clock()
+        self.button13['state'] = 'disabled'
+        self.button14['state'] = 'active'
+        t.start()
+    
+    def end(self):
+        for r, w in self.subfunc_object.streams:
+            w.close()
+        self.labelframe3.after_cancel(self.timer)
+        self.button13['state'] = 'active'
+        self.button14['state'] = 'disabled'
+        
+    def get_curtime(self):
+        return datetime.datetime.now()
+
+    def update_clock(self):
+        now = self.get_curtime() - self.starttime
+        self.label.configure(text=now)
+        #10msåˆ·æ–°ä¸€æ¬¡è®¡æ—¶å™¨
+        self.timer = self.labelframe3.after(10, self.update_clock) 
         
 
 if __name__ == '__main__':
     root = Tk()
     root.geometry('1100x600+100+50')
-    root.title(string='Î¯ÍĞ·şÎñ¶Ë²âÊÔ¹¤¾ß')
+    root.title(string='å§”æ‰˜æœåŠ¡ç«¯æµ‹è¯•å·¥å…·')
     root.iconbitmap('console.ico')
     app = App(root)
     root.mainloop()
